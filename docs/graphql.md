@@ -88,34 +88,6 @@ A user can add new content types based on the structure described when using the
 
 Let's create a new `User` content type that will represent users for our awesome application, update it and see how these changes affect the schema.
 
-Before we start making any change, let's take a look at the available content types by using the **contentTypes** query:
-
-```graphql
-query getAllContentTypes {
-  contentTypes {
-    id
-    name
-    description
-    fields {
-      id
-      name
-      type
-    }
-  }
-}
-```
-
-*Response* 
-```json
-{
-  "data": {
-    "contentTypes": []
-  }
-}
-```
-> Notice that it will be an empty array since we haven't added any content type yet.
-
-
 ### Adding our new `User` content type
 
 ```graphql
@@ -395,7 +367,7 @@ Please consider that if you need to add, updated or delete a field definition, y
 
 *Adding a new field*
 ```graphql
-mutation updateUserContentTypeFields {
+mutation addNewFieldToUserContentType {
   updateContentType(input: {
     id: "user",
     fields: [{
@@ -508,7 +480,7 @@ input UserUpdateInput {
 
 ```graphql
 
-mutation updateUserContentTypeFields {
+mutation updateFieldOnUserContentType {
   updateContentType(input: {
     id: "user",
     fields: [{
@@ -594,7 +566,7 @@ mutation updateUserContentTypeFields {
 
 ```graphql
 
-mutation updateUserContentTypeFields {
+mutation deleteFieldOnUserContentType {
   updateContentType(input: {
     id: "user",
     fields: [{
