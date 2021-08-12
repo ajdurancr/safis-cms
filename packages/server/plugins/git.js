@@ -1,11 +1,11 @@
 import fastifyPlugin from 'fastify-plugin'
-import githubAdapter from 'safis-cms-github-adapter'
+import { createAdapter } from 'safis-cms-github-adapter'
 
 import { GITHUB_ADAPTER, VISIBILITY_PRIVATE } from '../constants'
 
 // provider methods
 // only supports GitHub at this moment
-const gitAdapters = { [GITHUB_ADAPTER]: githubAdapter }
+const gitAdapters = { [GITHUB_ADAPTER]: createAdapter }
 
 const gitPlugin = async (fastify, opts, next) => {
   const { ownerSecret } = opts
