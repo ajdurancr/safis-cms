@@ -3,7 +3,7 @@ import safisLogo from '../images/icon.png'
 import * as styles from './index.module.sass'
 import '@fontsource/inter'
 
-const IndexPage = () => (
+const IndexPage: React.FC = (props) => (
   <main className={styles.pageStyles}>
     <title>Hi Safis</title>
     <img className={styles.logoStyles} alt="Safis Logo" src={safisLogo} />
