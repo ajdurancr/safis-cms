@@ -12,7 +12,7 @@ query getBaseCommitInfo($repo: String!, $owner: String!, $ref: String!) {
       }
     }
   }
-}`
+}`;
 
 export const QUERY_GET_FILE_CONTENT = `
 query getFileContent($repo: String!, $owner: String!, $ref: String!, $path: String!) { 
@@ -36,7 +36,7 @@ query getFileContent($repo: String!, $owner: String!, $ref: String!, $path: Stri
       }
     }
   }
-}`
+}`;
 
 export const QUERY_GET_FOLDER_CONTENT = `
 query getFolderContent($repo: String!, $owner: String!, $ref: String!, $path: String!) { 
@@ -68,12 +68,21 @@ query getFolderContent($repo: String!, $owner: String!, $ref: String!, $path: St
       }
     }
   }
-}`
+}`;
 
 export const QUERY_GET_REPOSITORY = `
 query getRepository($owner: String!, $name: String!){
   repository(owner: $owner, name: $name) {
     name
+    description
+    defaultBranchRef {
+      id
+      name 
+    }
+    isPrivate
+    owner {
+      login
+    }
   }
 }
-`
+`;

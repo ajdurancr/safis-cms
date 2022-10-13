@@ -94,7 +94,7 @@ export type CreateRefArgs = {
 
 export type CreateRepoArgs = {
   name: string,
-  description: string,
+  description?: string,
   isPrivate: boolean,
 }
 
@@ -218,6 +218,14 @@ export type GraphQLGetBaseCommitInfoResponse = {
 export type GraphQLGetRepositoryResponse = {
   repository: {
     name: string
+    description: string
+    defaultBranchRef: {
+      name: string
+    }
+    isPrivate: boolean
+    owner: {
+      login: string
+    }
   }
 }
 
@@ -286,10 +294,6 @@ export interface RestClientInterface {
 
   // user
   getAuthenticatedUser: () => Promise<AuthenticatedUser>,
-
-  // oatuh
-  getOAuthAccessToken: (args: GetOAuthAccessTokenArgs) => Promise<string>,
-  getOAuthLoginUrl: (args: GetOAuthLoginUrlArgs) => string,
 }
 
 export type UnifiedClients = {
@@ -305,36 +309,39 @@ export type InputFile = {
 }
 
 export type CreateBlobInfoArgs = {
-  repo: string,
-  owner: string,
   files: InputFile | InputFile[],
-  multi: boolean,
+  isList: boolean,
 }
 
 export type CreateFileContentArgs = {
-  repo: string,
-  owner: string,
-  branch: string,
+  branch?: string,
   files: InputFile | InputFile[],
   commitMessage: string,
 }
 
 export type DeleteFileContentArgs = {
-  repo: string,
-  owner: string,
-  branch: string,
+  branch?: string,
   path: string,
   commitMessage: string,
 }
 
 export type GetFileContentArgs = {
-  owner: string,
-  repo: string,
-  branch: string,
+  branch?: string,
   path: string,
 }
 
 export type GetFolderContentArgs = GetFileContentArgs
+
+export type GetContentArgs = {
+  id: string
+  subFolder?: string
+  branch?: string
+}
+
+export type GetAllContentArgs = {
+  subFolder?: string
+  branch?: string
+}
 
 // File Api responses
 
@@ -362,13 +369,18 @@ export interface FileApiInterface {
   createSingleTreeItem: (args: CreateSingleTreeItemArgs) => Tree,
   createTreeItems: (
     blobInfo: CreateSingleTreeItemArgs[] | CreateSingleTreeItemArgs,
-    multi: boolean,
+    isList: boolean,
   ) => Tree[],
   createBlobInfo: (args: CreateBlobInfoArgs) => Promise<BlobInfo | BlobInfo[]>,
   createFileContent: (args: CreateFileContentArgs) => Promise<ContentInfo | ContentInfo[]>,
   deleteFileContent (args: DeleteFileContentArgs): Promise<boolean>,
   getFileContent: (args: GetFileContentArgs) => Promise<string>,
   getFolderContent: (args: GetFolderContentArgs) => Promise<GraphQLContentEntry[]>,
+}
+
+export enum FileContentTypesEnum {
+  CONTENT = 'Content',
+  CONTENT_TYPE = 'ContentType',
 }
 
 // Content Api
@@ -378,21 +390,27 @@ export interface GenericContent {
   [key: string]: any
 }
 
-// Content Api args
+export type GenericContentWithId = GenericContent & { id: string }
 
-export type CreateContentArgs = CreateFileContentArgs & {
-  branch: string,
+// Content Api args
+export type CreateContentArgs = {
+  branch?: string
+  subFolder?: string
   commitMessage?: string,
-  content: GenericContent,
-  path: string,
+  content: GenericContentWithId,
+}
+
+export type DeleteContentArgs = {
+  id: string
+  branch?: string
+  subFolder?: string
+  commitMessage?: string
 }
 
 export type UpdateContentArgs = {
-  owner: string,
-  repo: string,
-  branch: string,
-  path: string,
-  content: GenericContent,
+  branch?: string,
+  subFolder?: string
+  content: GenericContentWithId,
   commitMessage?: string,
 }
 
@@ -400,9 +418,9 @@ export type UpdateContentArgs = {
 
 export interface ContentApiInterface {
   create(args: CreateContentArgs): Promise<GenericContent>
-  delete(args: DeleteFileContentArgs): Promise<boolean>
-  get(args: GetFileContentArgs): Promise<GenericContent | null>
-  getAll(args: GetFolderContentArgs): Promise<GenericContent[]>
+  delete(args: DeleteContentArgs): Promise<boolean>
+  get(args: GetContentArgs): Promise<GenericContent | null>
+  getAll(args: GetAllContentArgs): Promise<GenericContent[]>
   update(args: UpdateContentArgs): Promise<GenericContent>
 }
 
@@ -413,26 +431,26 @@ export enum InitRepoResponse {
   FOUND = 'FOUND', // repo was found
 }
 
+export type GetRepoInfoResponse = {
+  owner: string
+  name: string
+  description: string
+  defaultBranch: string
+  isPrivate: boolean
+}
+
 // Repository Api args
 
 export type InitRepoArgs = {
-  description: string,
+  description?: string,
   isPrivate?: boolean,
-  name: string,
-  owner: string,
-}
-
-// OAuth Api main interface
-
-export interface OAuthApiInterface {
-  getAccessToken(args: GetOAuthAccessTokenArgs): Promise<string>
-  getLoginUrl(args: GetOAuthLoginUrlArgs): string
 }
 
 // Repository Api main interface
 
 export interface RespositoryApiInterface {
   init: (args: InitRepoArgs) => Promise<InitRepoResponse>,
+  getInfo: () => Promise<GetRepoInfoResponse>,
 }
 
 // User Api main interface
@@ -441,14 +459,51 @@ export interface UserApiInterface {
   getAuthenticated(): Promise<AuthenticatedUser>
 }
 
-// GitAdapter
+// GitAdapterApi
 
-export interface GitAdapter {
+export interface GitAdapterApi {
   content: ContentApiInterface,
   contentType: ContentApiInterface,
-  oauth: OAuthApiInterface,
   repository: RespositoryApiInterface,
   user: UserApiInterface,
+}
+
+// GitHubAdapter
+
+export type AuthInfo = {
+  ownerSecret: string
+}
+
+export enum RepoPathsEnum {
+  ROOT = 'root',
+  CONTENT = 'content',
+  CONTENT_TYPE = 'contentType',
+}
+
+export type RepoPaths = {
+  [RepoPathsEnum.ROOT]: string | undefined
+  [RepoPathsEnum.CONTENT]: string
+  [RepoPathsEnum.CONTENT_TYPE]: string
+}
+
+export type RepoConfig = {
+  name: string
+  owner: string
+  paths: RepoPaths
+  createAsPrivate?: boolean
+}
+
+export type RepoInfo = Omit<RepoConfig, 'createAsPrivate'> & {
+  defaultBranch: string
+}
+
+export type InitialConfigs = {
+  repo: RepoConfig
+  auth: AuthInfo
+}
+
+export type CreateGitApiArgs = {
+  secret: string
 }
 
 // Others

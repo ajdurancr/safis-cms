@@ -1,4 +1,4 @@
-import get from 'lodash.get'
+import get from 'lodash.get';
 
 import {
   GitFileMode,
@@ -13,16 +13,20 @@ import {
   InputFile,
   CreateBlobInfoArgs,
   BlobInfo,
-  GraphQLContentEntry, GetFolderContentArgs, GetFileContentArgs, DeleteFileContentArgs,
-} from '../types'
+  GraphQLContentEntry, GetFolderContentArgs, GetFileContentArgs, DeleteFileContentArgs, RepoInfo,
+} from '../types';
 
-const TYPENAME_BLOB = 'Blob' // used to compare against GraphQL api responses
+const TYPENAME_BLOB = 'Blob'; // used to compare against GraphQL api responses
 
 class FileApi implements FileApiInterface {
   protected clients: UnifiedClients
 
-  constructor(unifiedClients: UnifiedClients) {
-    this.clients = unifiedClients
+  private _repoInfo: RepoInfo
+
+  constructor(unifiedClients: UnifiedClients, repoInfo: RepoInfo) {
+    this.clients = unifiedClients;
+
+    this._repoInfo = repoInfo;
   }
 
   createSingleTreeItem = ({ path, blob: { sha } }: CreateSingleTreeItemArgs): Tree => ({
@@ -34,30 +38,29 @@ class FileApi implements FileApiInterface {
 
   createTreeItems = (
     blobInfo: CreateSingleTreeItemArgs[] | CreateSingleTreeItemArgs,
-    multi?: boolean,
+    isList?: boolean,
   ): Tree[] => {
-    if (!multi) return [this.createSingleTreeItem(blobInfo as CreateSingleTreeItemArgs)]
+    if (!isList) return [this.createSingleTreeItem(blobInfo as CreateSingleTreeItemArgs)];
 
-    return (blobInfo as CreateSingleTreeItemArgs[]).map(this.createSingleTreeItem)
+    return (blobInfo as CreateSingleTreeItemArgs[]).map(this.createSingleTreeItem);
   }
 
   createBlobInfo = async (args: CreateBlobInfoArgs): Promise<BlobInfo | BlobInfo[]> => {
+    const { owner, name: repo } = this._repoInfo;
     const {
-      repo,
-      owner,
       files,
-      multi,
-    } = args
+      isList,
+    } = args;
 
-    if (!multi) {
-      const { path, content } = files as InputFile
+    if (!isList) {
+      const { path, content } = files as InputFile;
       const blob = await this.clients.rest.createBlob({
         repo,
         owner,
         content,
-      })
+      });
 
-      return { path, blob } as BlobInfo
+      return { path, blob } as BlobInfo;
     }
 
     const blobPromises = (files as InputFile[]).map(async ({ path, content }) => {
@@ -65,47 +68,45 @@ class FileApi implements FileApiInterface {
         repo,
         owner,
         content,
-      })
+      });
 
-      return { path, blob } as BlobInfo
-    })
+      return { path, blob } as BlobInfo;
+    });
 
-    return Promise.all(blobPromises)
+    return Promise.all(blobPromises);
   }
 
   createFileContent = async (args: CreateFileContentArgs): Promise<ContentInfo | ContentInfo[]> => {
+    const { owner, name: repo, defaultBranch } = this._repoInfo;
     const {
-      repo,
-      owner,
-      branch,
+      branch: targetBranch,
       files,
       commitMessage,
-    } = args
+    } = args;
+    const branch = targetBranch || defaultBranch;
     const parentCommitInfo = await this.clients.graphql.getBaseCommitInfo({
       owner,
       repo,
       branch,
-    })
+    });
 
-    const parentCommit = get(parentCommitInfo, 'repository.ref.target.commitSha')
-    const baseTree = get(parentCommitInfo, 'repository.ref.target.tree.sha')
-    const multi = Array.isArray(files)
+    const parentCommit = get(parentCommitInfo, 'repository.ref.target.commitSha');
+    const baseTree = get(parentCommitInfo, 'repository.ref.target.tree.sha');
+    const isList = Array.isArray(files);
 
     const blobInfo = await this.createBlobInfo({
-      repo,
-      owner,
       files,
-      multi,
-    })
+      isList,
+    });
 
-    const treeItems = await this.createTreeItems(blobInfo, multi)
+    const treeItems = await this.createTreeItems(blobInfo, isList);
 
     const { sha: treeSha } = await this.clients.rest.createTree({
       repo,
       owner,
       baseTree,
       treeItems,
-    })
+    });
 
     const { sha: commitSha } = await this.clients.rest.createCommit({
       owner,
@@ -113,44 +114,50 @@ class FileApi implements FileApiInterface {
       message: commitMessage,
       tree: treeSha,
       parents: parentCommit ? [parentCommit] : [],
-    })
+    });
 
     await this.clients.rest.updateRef({
       owner,
       repo,
       ref: `heads/${branch}`,
       sha: commitSha,
-    })
+    });
 
-    return multi
-      ? (blobInfo as BlobInfo[]).map(({ path, blob: { sha } }) => ({ path, sha })) as ContentInfo[]
-      : ({ path: (blobInfo as BlobInfo).path, sha: (blobInfo as BlobInfo).blob.sha }) as ContentInfo
+    return isList
+      ? (blobInfo as BlobInfo[]).map(({ path, blob: { sha } }) => ({
+        path,
+        sha,
+      })) as ContentInfo[]
+      : ({
+        path: (blobInfo as BlobInfo).path,
+        sha: (blobInfo as BlobInfo).blob.sha,
+      }) as ContentInfo;
   }
 
   deleteFileContent = async (args: DeleteFileContentArgs): Promise<boolean> => {
+    const { owner, name: repo, defaultBranch } = this._repoInfo;
     const {
-      repo,
-      owner,
-      branch,
+      branch: targetBranch,
       path,
       commitMessage,
-    } = args
-    const parentCommitInfo = await this.clients.graphql.getBaseCommitInfo({ owner, repo, branch })
+    } = args;
+    const branch = targetBranch || defaultBranch;
+    const parentCommitInfo = await this.clients.graphql.getBaseCommitInfo({ owner, repo, branch });
 
-    const parentCommit = get(parentCommitInfo, 'repository.ref.target.commitSha')
-    const baseTree = get(parentCommitInfo, 'repository.ref.target.tree.sha')
+    const parentCommit = get(parentCommitInfo, 'repository.ref.target.commitSha');
+    const baseTree = get(parentCommitInfo, 'repository.ref.target.tree.sha');
 
     const treeItems = await this.createTreeItems({
       path,
-      blob: { sha: null }, // sha=null will be delete the file
-    })
+      blob: { sha: null }, // sha=null will delete file
+    });
 
     const { sha: treeSha } = await this.clients.rest.createTree({
       repo,
       owner,
       baseTree,
       treeItems,
-    })
+    });
 
     const { sha: commitSha } = await this.clients.rest.createCommit({
       owner,
@@ -158,66 +165,64 @@ class FileApi implements FileApiInterface {
       message: commitMessage,
       tree: treeSha,
       parents: parentCommit ? [parentCommit] : [],
-    })
+    });
 
     await this.clients.rest.updateRef({
       owner,
       repo,
       ref: `heads/${branch}`,
       sha: commitSha,
-    })
+    });
 
-    return true
+    return true;
   }
 
   getFileContent = async (args: GetFileContentArgs): Promise<string> => {
+    const { owner, name: repo, defaultBranch } = this._repoInfo;
     const {
-      owner,
-      repo,
-      branch,
+      branch: targetBranch,
       path,
-    } = args
+    } = args;
     const response = await this.clients.graphql.getFileContent({
       owner,
       repo,
-      branch,
+      branch: targetBranch || defaultBranch,
       path,
     }).catch((errorResponse: any[]) => {
-      if (get(errorResponse, 'errors[0].type') === AdapterError.NOT_FOUND) return null
+      if (get(errorResponse, 'errors[0].type') === AdapterError.NOT_FOUND) return null;
 
-      throw errorResponse
-    })
+      throw errorResponse;
+    });
 
-    return get(response, 'repository.ref.target.file.object.text', null)
+    return get(response, 'repository.ref.target.file.object.text', null);
   }
 
   getFolderContent = async (args: GetFolderContentArgs): Promise<GraphQLContentEntry[]> => {
+    const { owner, name: repo, defaultBranch } = this._repoInfo;
     const {
-      owner,
-      repo,
-      branch,
+      branch: targetBranch,
       path,
-    } = args
+    } = args;
 
     const response = await this.clients.graphql.getFolderContent({
       owner,
       repo,
-      branch,
+      branch: targetBranch || defaultBranch,
       path,
     }).catch((errorResponse: any[]) => {
-      if (get(errorResponse, 'errors[0].type') === AdapterError.NOT_FOUND) return null
+      if (get(errorResponse, 'errors[0].type') === AdapterError.NOT_FOUND) return null;
 
-      throw errorResponse
-    })
+      throw errorResponse;
+    });
 
-    if (!response) return []
+    if (!response) return [];
 
-    const entries: GraphQLContentEntry[] = get(response, 'repository.ref.target.files.object.entries') || []
+    const entries: GraphQLContentEntry[] = get(response, 'repository.ref.target.files.object.entries') || [];
     const filesContent = entries
-      .filter((entry: GraphQLContentEntry) => get(entry, 'object.__typename') === TYPENAME_BLOB)
+      .filter((entry: GraphQLContentEntry) => get(entry, 'object.__typename') === TYPENAME_BLOB);
 
-    return filesContent
+    return filesContent;
   }
 }
 
-export { FileApi }
+export { FileApi };
