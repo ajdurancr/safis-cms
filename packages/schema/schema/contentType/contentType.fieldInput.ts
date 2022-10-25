@@ -28,6 +28,7 @@ const createContentTypeFieldInput = (
       ),
     },
     isList: { type: GraphQLBoolean },
+    isRequired: { type: GraphQLBoolean },
   }),
 });
 

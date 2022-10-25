@@ -44,6 +44,10 @@ const createContentTypeField = (
       type: GraphQLBoolean,
       description: 'Indicates if the field will contain a sigle element or multiple ones.',
     },
+    isRequired: {
+      type: GraphQLBoolean,
+      description: 'Marks the filed as required when `true`.',
+    },
   }),
 });
 
