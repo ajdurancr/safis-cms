@@ -1,11 +1,9 @@
 import { GraphQLObjectType } from 'graphql';
 
-import { ResolversMap } from './index';
+import type { ResolversMap } from './index';
 import type { CMSGraphQLFieldResolver, SchemaUpdaterFn } from '../types';
 import type { GraphQLTypeGettersMap } from './graphqlTypes';
-import { createMutationAddContentType } from './contentType/mutation/add';
-import { createMutationDeleteContentType } from './contentType/mutation/delete';
-import { createMutationUpdateContentType } from './contentType/mutation/update';
+import { createContentTypeMutationMap } from './contentType/mutation';
 
 const createSchemaUpdaterHandler = (
   schemaUpdater: SchemaUpdaterFn,
@@ -29,20 +27,20 @@ const createMutation = (
 
   return new GraphQLObjectType({
     name: 'Mutation',
-    fields: () => ({
-      // ContentType mutations
-      addContentType: createMutationAddContentType(
+    fields: () => {
+      const contentTypeResolvers = {
+        addContentType: reflectStructuralChange(addContentType),
+        deleteContentType: reflectStructuralChange(deleteContentType),
+        updateContentType: reflectStructuralChange(updateContentType),
+      };
+
+      const contentTypeMutationsMap = createContentTypeMutationMap(
         graphqlTypes,
-        reflectStructuralChange(addContentType),
-      ),
-      deleteContentType: createMutationDeleteContentType(
-        reflectStructuralChange(deleteContentType),
-      ),
-      updateContentType: createMutationUpdateContentType(
-        graphqlTypes,
-        reflectStructuralChange(updateContentType),
-      ),
-    }),
+        contentTypeResolvers,
+      );
+
+      return { ...contentTypeMutationsMap };
+    },
   });
 };
 
