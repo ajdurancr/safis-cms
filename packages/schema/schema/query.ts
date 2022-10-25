@@ -3,8 +3,7 @@ import { GraphQLObjectType } from 'graphql';
 import type { ResolverCreatorsMap, ResolversMap } from './index';
 import type { ContentTypeDefinition, ContentTypesMap } from '../types';
 import { createUserDefinedContentQueries } from './content/queries';
-import { createQueryContentType } from './contentType/query/contentType';
-import { createQueryContentTypeCollection } from './contentType/query/contentTypeCollection';
+import { createContentTypeQueryMap } from './contentType/query';
 import type { GetGraphQLTypeGettersMapFn } from './graphqlTypes';
 
 export type ContentTypeMetadata = {
@@ -27,25 +26,11 @@ const createQuery = (
   return new GraphQLObjectType({
     name: 'Query',
     fields: () => {
-      const GraphqlContentType = getGraphQLTypeGettersMap().ContentType() as GraphQLObjectType;
+      const graphqlContentType = getGraphQLTypeGettersMap().ContentType() as GraphQLObjectType;
+      const contentTypeQueryMap = createContentTypeQueryMap(graphqlContentType, resolvers);
 
       return {
-        contentTypeCollection: createQueryContentTypeCollection(
-          GraphqlContentType,
-          resolvers.contentTypeCollection,
-        ),
-        contentType: createQueryContentType(
-          GraphqlContentType,
-          resolvers.contentType,
-        ),
-        // ...Object.keys(userDefinedContentTypesMap).reduce((typesMap, typeName) => ({
-        //   ...typesMap,
-        //   [typeName]: {
-        //     // name: typeName,
-        //     type: userDefinedContentTypesMap[typeName],
-        //   },
-        // }), {}),
-        // content: createGraphqlContent(contentTypesMap),
+        ...contentTypeQueryMap,
         ...genericContentQueries,
       };
     },
