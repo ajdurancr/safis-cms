@@ -7,7 +7,7 @@ import type {
   FastifyReply,
 } from 'fastify';
 import {
-  ContentTypeDefinition,
+  ContentType,
   ContentTypesMap,
   createSchema,
   mapContentTypes,
@@ -68,13 +68,13 @@ const graphqlGitPlugin: FastifyPluginCallback = async (
 
   const gitApi = gitAdapter.createGitApi({ secret: gitOwnerSecret });
 
-  let contentTypesList: ContentTypeDefinition[];
+  let contentTypesList: ContentType[];
   let contentTypesMap: ContentTypesMap;
 
   async function updateContentTypesMetadata(): Promise<void> {
     instance.log.info('Fecthing ContentTypes...');
 
-    contentTypesList = await gitApi.contentType.getAll({}) as ContentTypeDefinition[];
+    contentTypesList = await gitApi.contentType.getAll({}) as ContentType[];
 
     contentTypesMap = mapContentTypes(contentTypesList);
 
@@ -83,7 +83,7 @@ const graphqlGitPlugin: FastifyPluginCallback = async (
 
   function getContentTypeMetadata() {
     return {
-      contentTypesList: contentTypesList as ContentTypeDefinition[],
+      contentTypesList: contentTypesList as ContentType[],
       contentTypesMap: contentTypesMap as ContentTypesMap,
     };
   }

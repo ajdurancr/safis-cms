@@ -1,4 +1,4 @@
-import { GraphQLFieldConfig } from 'graphql';
+import { GraphQLFieldConfigMap } from 'graphql';
 
 import { ResolversMap } from '../..';
 import { GraphQLTypeGettersMap } from '../../graphqlTypes';
@@ -6,10 +6,10 @@ import { createMutationAddContentType } from './add';
 import { createMutationDeleteContentType } from './delete';
 import { createMutationUpdateContentType } from './update';
 
-const createContentTypeMutationMap = (
+const createContentTypeMutationsMap = (
   graphqlTypes: GraphQLTypeGettersMap,
   resolvers: ResolversMap<any>,
-): { [mutationName: string]: GraphQLFieldConfig<any, any, any> } => {
+): GraphQLFieldConfigMap<any, any> => {
   const { addContentType, deleteContentType, updateContentType } = resolvers;
 
   return {
@@ -27,4 +27,4 @@ const createContentTypeMutationMap = (
   };
 };
 
-export { createContentTypeMutationMap };
+export { createContentTypeMutationsMap };

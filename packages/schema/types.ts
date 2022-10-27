@@ -35,14 +35,14 @@ export type FieldDefinition = {
   isList?: boolean
 }
 
-export type ContentTypeDefinition = {
+export type ContentType = {
   id: string
   name: string
   fields: FieldDefinition[]
 }
 
 export type ContentTypesMap = {
-  [contentTypeId: string]: ContentTypeDefinition
+  [contentTypeId: string]: ContentType
 }
 
 export type GraphQLTypeName = string
@@ -68,6 +68,15 @@ export type CreateTypeDefsArgs = {
 
 export type GenericContent = {
   [key: string]: any
+}
+
+export type ContentSysMetadata = {
+  id: string
+  __contentTypeId: string
+}
+
+export type Content = GenericContent & {
+  sys: ContentSysMetadata
 }
 
 export type CMSGraphQLFieldResolver<TContext=any, TSource=any, TArgs=any, TResult=any>

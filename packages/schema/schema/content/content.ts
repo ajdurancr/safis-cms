@@ -4,14 +4,14 @@ import {
   GraphQLInterfaceType,
 } from 'graphql';
 
-import type { ContentTypeDefinition } from '../../types';
+import type { ContentType } from '../../types';
 import { getGraphqlTypeName } from '../../helpers/graphql';
 import { createContentFieldsMap } from './content.fields.map';
 import { GetGraphQLTypeGettersMapFn } from '../graphqlTypes';
 import { ContentFieldTypeMap } from '../index';
 
 const createUserDefinedContentType = (
-  contentType: ContentTypeDefinition,
+  contentType: ContentType,
   graphqlContentFieldTypesMap: ContentFieldTypeMap,
   getGraphqlTypeGetters: GetGraphQLTypeGettersMapFn,
 ): GraphQLObjectType => {
@@ -38,7 +38,7 @@ export type GraphQLUserDefinedContentTypesMap = {
 }
 
 const createUserDefinedContentTypesMap = (
-  contentTypesList: ContentTypeDefinition[],
+  contentTypesList: ContentType[],
   graphqlContentFieldTypesMap: ContentFieldTypeMap,
   getGraphqlTypeGetters: GetGraphQLTypeGettersMapFn,
 ): GraphQLUserDefinedContentTypesMap => contentTypesList

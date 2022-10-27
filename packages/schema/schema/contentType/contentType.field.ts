@@ -8,7 +8,7 @@ import {
 } from 'graphql';
 import { ContentTypeFieldTypeEnum } from '../../types';
 
-import { GetGraphQLTypeGettersMapFn } from '../graphqlTypes';
+import type { GetGraphQLTypeGettersMapFn } from '../graphqlTypes';
 
 const REF_FIELD_DESC = `When \`type\` = \`${ContentTypeFieldTypeEnum.Reference}\`, it indicates the reference type. If empty, all all content types will be accepted.`;
 

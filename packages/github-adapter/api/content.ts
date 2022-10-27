@@ -66,12 +66,13 @@ class ContentApi implements ContentApiInterface {
 
   create = async (args: CreateContentArgs): Promise<GenericContent> => {
     const {
+      id,
       branch,
       subFolder,
       content,
       commitMessage = this.getDefaultCommitMessage('Add'),
     } = args;
-    const fileName = this._getContentFileName(content.id);
+    const fileName = this._getContentFileName(id);
     const fullPath = this._getFullPath(fileName, subFolder);
     const fileContent = await this.fileApi.getFileContent({
       path: fullPath,
@@ -152,12 +153,13 @@ class ContentApi implements ContentApiInterface {
 
   update = async (args: UpdateContentArgs): Promise<GenericContent> => {
     const {
+      id,
       branch,
       subFolder,
       content: newContent,
       commitMessage = this.getDefaultCommitMessage('Update'),
     } = args;
-    const fileName = this._getContentFileName(newContent.id);
+    const fileName = this._getContentFileName(id);
     const fullPath = this._getFullPath(fileName, subFolder);
     const fileContent = await this.fileApi.getFileContent({
       path: fullPath,

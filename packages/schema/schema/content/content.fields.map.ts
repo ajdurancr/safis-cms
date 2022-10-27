@@ -6,7 +6,7 @@ import {
 } from 'graphql';
 
 import type { ContentFieldTypeMap } from '../index';
-import { ContentTypeDefinition, ContentTypeFieldTypeEnum, FieldDefinition } from '../../types';
+import { ContentType, ContentTypeFieldTypeEnum, FieldDefinition } from '../../types';
 import { GraphQLTypeGettersMap } from '../graphqlTypes';
 import { getRefType } from './content.fields.refType';
 
@@ -53,7 +53,7 @@ const createGraphqlFieldType = ({
 };
 
 const createContentFieldsMap = (
-  contentType: ContentTypeDefinition,
+  contentType: ContentType,
   graphqlContentFieldTypesMap: ContentFieldTypeMap,
   graphQLTypeGettersMap: GraphQLTypeGettersMap,
 ): GraphQLFieldConfigMap<any, any> => (

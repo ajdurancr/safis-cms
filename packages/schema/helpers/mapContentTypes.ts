@@ -1,7 +1,7 @@
-import type { ContentTypeDefinition, ContentTypesMap } from '../types';
+import type { ContentType, ContentTypesMap } from '../types';
 
 const mapContentTypes = (
-  contentTypesList: ContentTypeDefinition[],
+  contentTypesList: ContentType[],
 ): ContentTypesMap => contentTypesList
   .reduce((ctMap, contentType) => ({
     ...ctMap,

@@ -1,12 +1,10 @@
-import { GenericContent, ResolverCreatorFn } from '@safis/cms-schema';
+import { Content, ResolverCreatorFn } from '@safis/cms-schema';
 import { CMSResolver, ContextWithGitMetadata } from '../../types';
 
-const createContentQuery: ResolverCreatorFn<
-  Promise<GenericContent | null>,
-  CMSResolver<ContextWithGitMetadata>
-> = (
-  contentType,
-) => async (
+const createContentQuery: ResolverCreatorFn<CMSResolver<
+  ContextWithGitMetadata,
+  Promise<Content | null>>
+> = (contentType) => async (
   _,
   { id }: { id: string },
   { git },
@@ -14,29 +12,23 @@ const createContentQuery: ResolverCreatorFn<
   id,
   branch: git.branch,
   subFolder: contentType.id,
-});
+}) as Promise<Content | null>;
 
-const createContentCollectionQuery: ResolverCreatorFn<
-  Promise<GenericContent[]>,
-  CMSResolver<ContextWithGitMetadata>
-> = (
-  contentType,
-) => async (
+const createContentCollectionQuery: ResolverCreatorFn<CMSResolver<
+  ContextWithGitMetadata,
+  Promise<Content[]>>
+> = (contentType) => (
   _,
   args,
   { git },
-) => {
-  const collection = await git.api.content.getAll({
-    branch: git.branch,
-    subFolder: contentType.id,
-  });
+) => git.api.content.getAll({
+  branch: git.branch,
+  subFolder: contentType.id,
+}) as Promise<Content[]>;
 
-  return collection;
-};
-
-const createContentQueryResolversFnMap = {
+const contentQueryResolverCreatorsMap = {
   content: createContentQuery,
   contentCollection: createContentCollectionQuery,
 };
 
-export { createContentQueryResolversFnMap };
+export { contentQueryResolverCreatorsMap };

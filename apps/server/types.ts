@@ -4,7 +4,7 @@ import type {
 } from '@safis/cms-github-adapter/types';
 import type {
   CMSGraphQLFieldResolver,
-  ContentTypeDefinition,
+  ContentType,
   ContentTypesMap,
 } from '@safis/cms-schema';
 import { createSchema } from '@safis/cms-schema';
@@ -73,7 +73,7 @@ export type GitContext<GitApi = any> = {
 }
 
 export interface CMSContext {
-  contentTypesList: ContentTypeDefinition[]
+  contentTypesList: ContentType[]
   contentTypesMap: ContentTypesMap
 }
 

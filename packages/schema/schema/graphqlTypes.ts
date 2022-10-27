@@ -1,12 +1,7 @@
 import type { GraphQLEnumType, GraphQLInputObjectType, GraphQLInterfaceType, GraphQLType } from 'graphql';
-import {
-  GraphQLObjectType,
-  GraphQLString,
-  GraphQLNonNull,
-  GraphQLList,
-} from 'graphql';
+import { GraphQLObjectType } from 'graphql';
 
-import type { ContentTypeDefinition, ContentTypesMap } from '../types';
+import type { ContentType, ContentTypesMap } from '../types';
 import { createContentFieldTypeMap } from './contentType/contentType.fieldTypeMap';
 import { createContentFieldTypeEnum } from './contentType/contentType.fieldTypeEnum';
 import { createContentTypeField } from './contentType/contentType.field';
@@ -44,7 +39,7 @@ export type SchemaGraphQLTypesMap = {
 }
 
 const createGraphqlTypes = (
-  contentTypesList: ContentTypeDefinition[],
+  contentTypesList: ContentType[],
   contentTypesMap: ContentTypesMap,
 ): {
   contentFieldTypeMap: ContentFieldTypeMap

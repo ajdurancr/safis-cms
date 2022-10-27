@@ -4,11 +4,7 @@ import {
   GraphQLNonNull,
 } from 'graphql';
 
-import type { ContentTypesMap } from '../../types';
-
-type GraphQLSysSource = {
-  __contentTypeId: string
-}
+import type { ContentSysMetadata, ContentTypesMap } from '../../types';
 
 const createContentSys = (
   contentTypesMap: ContentTypesMap,
@@ -20,7 +16,7 @@ const createContentSys = (
     contentType: {
       type: new GraphQLNonNull(graphqlContentType),
       // eslint-disable-next-line no-underscore-dangle
-      resolve: ({ __contentTypeId }: GraphQLSysSource) => contentTypesMap[__contentTypeId],
+      resolve: ({ __contentTypeId }: ContentSysMetadata) => contentTypesMap[__contentTypeId],
     },
   },
 });

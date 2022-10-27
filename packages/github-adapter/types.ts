@@ -390,14 +390,13 @@ export interface GenericContent {
   [key: string]: any
 }
 
-export type GenericContentWithId = GenericContent & { id: string }
-
 // Content Api args
 export type CreateContentArgs = {
+  id: string
   branch?: string
   subFolder?: string
-  commitMessage?: string,
-  content: GenericContentWithId,
+  commitMessage?: string
+  content: GenericContent
 }
 
 export type DeleteContentArgs = {
@@ -408,10 +407,11 @@ export type DeleteContentArgs = {
 }
 
 export type UpdateContentArgs = {
-  branch?: string,
+  id: string
+  branch?: string
   subFolder?: string
-  content: GenericContentWithId,
-  commitMessage?: string,
+  content: GenericContent,
+  commitMessage?: string
 }
 
 // Content Api main interface

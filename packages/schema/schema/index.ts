@@ -9,13 +9,12 @@ import {
 
 import type {
   CMSGraphQLFieldResolver,
-  ContentTypeDefinition,
-  GenericContent,
+  Content,
+  ContentType,
   SchemaUpdaterFn,
 } from '../types';
 import { createQuery } from './query';
 import { createMutation } from './mutation';
-// import { createGraphqlContentTypeNames } from '../helpers/graphql';
 import { createGraphqlTypes } from './graphqlTypes';
 import { mapContentTypes } from '../helpers/mapContentTypes';
 import { ContentTypeFieldTypeEnum } from '../types';
@@ -55,20 +54,27 @@ export type RootResolversMap<TContext> = {
   mutation: ResolversMap<TContext>
 }
 
-export type ResolverCreatorFn<
-  TResult,
-  TResolver = CMSGraphQLFieldResolver<any, any, any, TResult>
-> = (
-  contentType: ContentTypeDefinition,
-) => TResolver
+export type ContentResolver = CMSGraphQLFieldResolver<any, any, any, Promise<Content | null>>
+export type ContentCollectionResolver = CMSGraphQLFieldResolver<
+  any,
+  any,
+  any,
+  Promise<Content[]>
+>
+
+export type ResolverCreatorFn<TResolver> = (contentType: ContentType) => TResolver
 
 export type ResolverCreatorsMap = {
-  content: ResolverCreatorFn<Promise<GenericContent | null>>
-  contentCollection: ResolverCreatorFn<Promise<GenericContent[]>>
+  content: ResolverCreatorFn<ContentResolver>
+  contentCollection: ResolverCreatorFn<ContentCollectionResolver>
+
+  addContent: ResolverCreatorFn<ContentResolver>
+  deleteContent: ResolverCreatorFn<CMSGraphQLFieldResolver<any, any, any, Promise<boolean>>>
+  updateContent: ResolverCreatorFn<ContentResolver>
 }
 
 type CreateSchemaArgs = {
-  contentTypesList: ContentTypeDefinition[]
+  contentTypesList: ContentType[]
   resolvers: RootResolversMap<any>
   resolverCreatorsMap: ResolverCreatorsMap
   schemaUpdater: SchemaUpdaterFn
@@ -80,7 +86,6 @@ const createSchema = ({
   resolverCreatorsMap,
   schemaUpdater,
 }: CreateSchemaArgs): GraphQLSchema => {
-  // const graphqlContentTypeNames = createGraphqlContentTypeNames(contentTypesList);
   const {
     query: queryResolvers,
     mutation: mutationResolvers,
@@ -89,23 +94,25 @@ const createSchema = ({
   const contentTypesMap = mapContentTypes(contentTypesList);
 
   const {
-    // contentFieldTypeMap,
     types: graphqlTypesMap,
-    getTypeGetterMap,
+    contentFieldTypeMap,
   } = createGraphqlTypes(contentTypesList, contentTypesMap);
 
   return new GraphQLSchema({
     query: createQuery(
       contentTypesList,
-      getTypeGetterMap,
+      graphqlTypesMap,
       queryResolvers,
       resolverCreatorsMap,
     ),
-    mutation: createMutation(
-      graphqlTypesMap,
-      mutationResolvers,
+    mutation: createMutation({
+      contentTypesList,
+      graphqlTypes: graphqlTypesMap,
+      contentFieldTypeMap,
+      resolvers: mutationResolvers,
       schemaUpdater,
-    ),
+      resolverCreatorsMap,
+    }),
   });
 };
 

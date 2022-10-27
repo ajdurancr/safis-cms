@@ -1,39 +1,36 @@
 import { GraphQLObjectType } from 'graphql';
 
 import type { ResolverCreatorsMap, ResolversMap } from './index';
-import type { ContentTypeDefinition, ContentTypesMap } from '../types';
-import { createUserDefinedContentQueries } from './content/queries';
+import type { ContentType, ContentTypesMap } from '../types';
+import type { GraphQLTypeGettersMap } from './graphqlTypes';
+import { createContentQueryMap } from './content/query';
 import { createContentTypeQueryMap } from './contentType/query';
-import type { GetGraphQLTypeGettersMapFn } from './graphqlTypes';
 
 export type ContentTypeMetadata = {
-  contentTypesList: ContentTypeDefinition[]
+  contentTypesList: ContentType[]
   contentTypesMap: ContentTypesMap
 }
 
 const createQuery = (
-  contentTypesList: ContentTypeDefinition[],
-  getGraphQLTypeGettersMap: GetGraphQLTypeGettersMapFn,
+  contentTypesList: ContentType[],
+  graphqlTypes: GraphQLTypeGettersMap,
   resolvers: ResolversMap<any>,
   resolverCreatorsMap: ResolverCreatorsMap,
-): GraphQLObjectType => {
-  const genericContentQueries = createUserDefinedContentQueries(
-    contentTypesList,
-    getGraphQLTypeGettersMap,
-    resolverCreatorsMap,
-  );
+): GraphQLObjectType => new GraphQLObjectType({
+  name: 'Query',
+  fields: () => {
+    const genericContentQueries = createContentQueryMap(
+      contentTypesList,
+      graphqlTypes,
+      resolverCreatorsMap,
+    );
+    const graphqlContentType = graphqlTypes.ContentType() as GraphQLObjectType;
+    const contentTypeQueryMap = createContentTypeQueryMap(graphqlContentType, resolvers);
 
-  return new GraphQLObjectType({
-    name: 'Query',
-    fields: () => {
-      const graphqlContentType = getGraphQLTypeGettersMap().ContentType() as GraphQLObjectType;
-      const contentTypeQueryMap = createContentTypeQueryMap(graphqlContentType, resolvers);
-
-      return {
-        ...contentTypeQueryMap,
-        ...genericContentQueries,
-      };
-    },
-  });
-};
+    return {
+      ...contentTypeQueryMap,
+      ...genericContentQueries,
+    };
+  },
+});
 export { createQuery };
