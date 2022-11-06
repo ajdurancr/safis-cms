@@ -5,11 +5,12 @@ import type { ContentType, ContentTypesMap } from '../types';
 import { createContentFieldTypeMap } from './contentType/contentType.fieldTypeMap';
 import { createContentFieldTypeEnum } from './contentType/contentType.fieldTypeEnum';
 import { createContentTypeField } from './contentType/contentType.field';
-import { createContentTypeFieldInput } from './contentType/contentType.fieldInput';
+import { createContentTypeFieldInput } from './contentType/contentType.field.input';
 import { createContentType } from './contentType/contentType';
 import { createContentInterface } from './content/content.interface';
 import { createContentSys } from './content/content.sys';
 import { createContentEnum } from './content/content.enum';
+import { createRefInput } from './content/content.ref.input';
 import type { ContentFieldTypeMap } from './index';
 import { createUserDefinedContentTypesMap } from './content/content';
 
@@ -46,6 +47,7 @@ const createGraphqlTypes = (
   types: GraphQLTypeGettersMap
   getTypeGetterMap: GetGraphQLTypeGettersMapFn
 } => {
+  const RefInput = createRefInput();
   const ContentEnum = createContentEnum(contentTypesList);
   const ContentInterface = createContentInterface(
     getTypeGetterMap, // eslint-disable-line no-use-before-define
@@ -69,40 +71,6 @@ const createGraphqlTypes = (
     // eslint-disable-next-line no-use-before-define
     getTypeGetterMap,
   );
-  // const UserDefinedContentTypes = {} as { [key: string]: GraphQLObjectType };
-
-  // const graphqlTypes: { [type: string]: GraphQLType } = {
-  //   // Content
-  //   ContentEnum,
-  //   ContentSys,
-  //   ContentInterface,
-
-  //   // ContentType
-  //   ContentFieldTypeEnum,
-  //   ContentType,
-  //   ContentTypeFieldInput,
-
-  //   // // type getters
-  //   // // eslint-disable-next-line no-use-before-define
-  //   // getContent,
-
-  //   // User defined content types
-  //   ...userDefinedContentTypesMap,
-  // };
-
-  // used to get ContentType inside a `Thunk` funtion
-  // see 'schema/content/content.interface.ts' for more info
-  function getContentSysType() {
-    return ContentSys;
-  }
-
-  function getContent(graphqlName: string): MaybeGraphQLType {
-    return userDefinedContentTypesMap[graphqlName];
-  }
-
-  // function getTypeGetterMapV1() {
-  //   return typeGetters;
-  // }
 
   function getTypeGetterMap() {
     const graphqlTypes: { [type: string]: GraphQLType } = {
@@ -110,16 +78,13 @@ const createGraphqlTypes = (
       ContentEnum,
       ContentSys,
       ContentInterface,
-      Content: ContentInterface, // Same
+      Content: ContentInterface,
+      RefInput,
 
       // ContentType
       ContentFieldTypeEnum,
       ContentType,
       ContentTypeFieldInput,
-
-      // // type getters
-      // // eslint-disable-next-line no-use-before-define
-      // getContent,
 
       // User defined content types
       ...userDefinedContentTypesMap,
@@ -136,10 +101,6 @@ const createGraphqlTypes = (
         };
       }, {});
   }
-
-  // function getGraphqlTypesMap() {
-  //   return graphqlTypes;
-  // }
 
   return {
     contentFieldTypeMap,

@@ -40,7 +40,7 @@ const createMutationAddContentType = (
     type: new GraphQLNonNull(
       graphqlTypes.ContentType() as GraphQLObjectType,
     ),
-    args: { input: { type: addContentTypeInput } },
+    args: { data: { type: addContentTypeInput } },
     resolve: resolveFn,
   };
 };

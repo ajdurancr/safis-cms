@@ -20,7 +20,7 @@ import { mapContentTypes } from '../helpers/mapContentTypes';
 import { ContentTypeFieldTypeEnum } from '../types';
 
 export type ContentFieldTypeMap = {
-  [ContentTypeFieldTypeEnum.Reference]: {
+  [ContentTypeFieldTypeEnum.Ref]: {
     type: GraphQLInterfaceType,
     description?: string,
   },

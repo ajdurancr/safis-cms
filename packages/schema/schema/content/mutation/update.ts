@@ -21,7 +21,7 @@ const createUpdateContentInput = (
   contentFieldTypeMap: ContentFieldTypeMap,
 ) => {
   const inputFieldConfigMap = contentType.fields
-    .filter(({ type }) => type !== ContentTypeFieldTypeEnum.Reference) // TODO: enable Ref types
+    .filter(({ type }) => type !== ContentTypeFieldTypeEnum.Ref) // TODO: enable Ref types
     .reduce((inputsMap, field) => {
       const graphqlFieldTypeConfig = contentFieldTypeMap[field.type];
       const fieldTypeAsRequired = field.isRequired

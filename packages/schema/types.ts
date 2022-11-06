@@ -8,7 +8,7 @@ export enum ContentTypeFieldTypeEnum {
   String = 'String',
   Number = 'Number',
   Boolean = 'Boolean',
-  Reference = 'Reference',
+  Ref = 'Ref',
   ID = 'ID',
 }
 

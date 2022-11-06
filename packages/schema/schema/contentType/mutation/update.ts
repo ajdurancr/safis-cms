@@ -33,7 +33,7 @@ const createMutationUpdateContentType = (
     type: new GraphQLNonNull(
       graphqlTypes.ContentType() as GraphQLObjectType,
     ),
-    args: { input: { type: updateContentTypeInput } },
+    args: { data: { type: updateContentTypeInput } },
     resolve: resolveFn,
   };
 };

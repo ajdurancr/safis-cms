@@ -3,7 +3,7 @@ import camelCase from 'lodash.camelcase';
 import { CMSResolver, ContextWithGitMetadata } from '../../types';
 
 type GenericContentTypeInput = {
-  input: {
+  data: {
     id: string
     [key: string]: any
   }
@@ -11,16 +11,16 @@ type GenericContentTypeInput = {
 
 const addContentType: CMSResolver<ContextWithGitMetadata> = (
   _,
-  { input }: GenericContentTypeInput,
+  { data }: GenericContentTypeInput,
   context,
 ) => {
   const { branch } = context.git;
-  const id = input.id || camelCase(input.name);
+  const id = data.id || camelCase(data.name);
 
   return context.git.api.contentType.create({
     id,
     branch,
-    content: input,
+    content: { ...data, id },
   });
 };
 
@@ -36,15 +36,15 @@ const deleteContentType: CMSResolver<ContextWithGitMetadata> = (
 
 const updateContentType: CMSResolver<ContextWithGitMetadata> = (
   _,
-  { input }: GenericContentTypeInput,
+  { data }: GenericContentTypeInput,
   context,
 ) => {
   const { branch } = context.git;
 
   return context.git.api.contentType.update({
-    id: input.id,
+    id: data.id,
     branch,
-    content: input,
+    content: data,
   });
 };
 

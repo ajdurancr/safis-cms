@@ -11,7 +11,7 @@ import { ContentFieldTypeMap } from '../index';
 const createContentFieldTypeMap = (
   contentInterface: GraphQLInterfaceType,
 ): ContentFieldTypeMap => ({
-  [ContentTypeFieldTypeEnum.Reference]: {
+  [ContentTypeFieldTypeEnum.Ref]: {
     type: contentInterface,
     description: 'Reference to other content types.',
   }, // GraphQLObject({ refId: string, value: ContentEnum })
