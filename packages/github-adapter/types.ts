@@ -200,6 +200,13 @@ export type GraphQLGetFileContentArgs = {
   repo: string,
 }
 
+export type GraphQLGetFilteredFilesContentArgs = {
+  branch: string;
+  owner: string;
+  files: { path: string, fieldName: string }[];
+  repo: string;
+}
+
 export type GraphQLGetFolderContentArgs = GraphQLGetFileContentArgs
 
 export type GraphQLGetBaseCommitInfoResponse = {
@@ -245,6 +252,22 @@ export type GraphQLGetFileContentResponse = {
     }
   }
 }
+export type GraphQLGeFilteredtFilesContentResponse = {
+  repository: {
+    ref: {
+      target: {
+        [fileFieldName: string]: {
+          object: {
+            __typename: string
+            id: string
+            text: string
+            isTruncated: boolean
+          }
+        }
+      }
+    }
+  }
+}
 
 export type GraphQLFileEntry = {
   object: {
@@ -270,9 +293,23 @@ export type GraphQLGetFolderContentResponse = {
   }
 }
 
+export type GitHubGraphQLError = {
+  type: string,
+  message: string,
+  locations: any[],
+  path: [string]
+}
+
+export enum GraphQLClientErrorsEnum {
+  NOT_FOUND = 'NOT_FOUND'
+}
+
 export interface GraphQLClientInterface {
   getBaseCommitInfo(args: GetBaseCommitInfoArgs): Promise<GraphQLGetBaseCommitInfoResponse>
   getFileContent(args: GraphQLGetFileContentArgs): Promise<GraphQLGetFileContentResponse>
+  getFilteredFilesContent(
+    args: GraphQLGetFilteredFilesContentArgs,
+  ): Promise<GraphQLGeFilteredtFilesContentResponse>
   getFolderContent(args: GraphQLGetFolderContentArgs): Promise<GraphQLGetFolderContentResponse>
   getRepository(args: GetRepositoryArgs): Promise<GraphQLGetRepositoryResponse>
 }
@@ -330,6 +367,11 @@ export type GetFileContentArgs = {
   path: string,
 }
 
+export type GetFilteredFilesContentArgs = {
+  branch?: string,
+  files: { path: string, id: string }[],
+}
+
 export type GetFolderContentArgs = GetFileContentArgs
 
 export type GetContentArgs = {
@@ -341,6 +383,11 @@ export type GetContentArgs = {
 export type GetAllContentArgs = {
   subFolder?: string
   branch?: string
+}
+
+export type GetManyContentArgs = {
+  branch?: string,
+  files: { type: string, id: string }[],
 }
 
 // File Api responses
@@ -375,7 +422,8 @@ export interface FileApiInterface {
   createFileContent: (args: CreateFileContentArgs) => Promise<ContentInfo | ContentInfo[]>,
   deleteFileContent (args: DeleteFileContentArgs): Promise<boolean>,
   getFileContent: (args: GetFileContentArgs) => Promise<string>,
-  getFolderContent: (args: GetFolderContentArgs) => Promise<GraphQLContentEntry[]>,
+  getFilteredFilesContent: (args: GetFilteredFilesContentArgs) => Promise<(string | null)[]>,
+  getFolderContent: (args: GetFolderContentArgs) => Promise<string[]>,
 }
 
 export enum FileContentTypesEnum {
@@ -420,6 +468,7 @@ export interface ContentApiInterface {
   create(args: CreateContentArgs): Promise<GenericContent>
   delete(args: DeleteContentArgs): Promise<boolean>
   get(args: GetContentArgs): Promise<GenericContent | null>
+  getMany(args: GetManyContentArgs): Promise<(GenericContent | null)[]>
   getAll(args: GetAllContentArgs): Promise<GenericContent[]>
   update(args: UpdateContentArgs): Promise<GenericContent>
 }
@@ -504,10 +553,4 @@ export type InitialConfigs = {
 
 export type CreateGitApiArgs = {
   secret: string
-}
-
-// Others
-
-export enum AdapterError {
-  NOT_FOUND = 'NOT_FOUND'
 }

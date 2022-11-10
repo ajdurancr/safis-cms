@@ -30,7 +30,7 @@ export type FieldDefinition = {
   name: string
   description?: string
   type: ContentTypeFieldTypeEnum
-  refType?: string[]
+  refTypes?: string[]
   isRequired?: boolean
   isList?: boolean
 }
@@ -78,6 +78,13 @@ export type ContentSysMetadata = {
 export type Content = GenericContent & {
   sys: ContentSysMetadata
 }
+
+export type ContentRef = {
+  type: string
+  id: string
+}
+
+export type RefResult = Content | null
 
 export type CMSGraphQLFieldResolver<TContext=any, TSource=any, TArgs=any, TResult=any>
   = GraphQLFieldResolver<TSource, TContext, TArgs, TResult>

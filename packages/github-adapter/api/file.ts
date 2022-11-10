@@ -3,7 +3,6 @@ import get from 'lodash.get';
 import {
   GitFileMode,
   GitItemType,
-  AdapterError,
   Tree,
   CreateSingleTreeItemArgs,
   UnifiedClients,
@@ -13,7 +12,14 @@ import {
   InputFile,
   CreateBlobInfoArgs,
   BlobInfo,
-  GraphQLContentEntry, GetFolderContentArgs, GetFileContentArgs, DeleteFileContentArgs, RepoInfo,
+  GraphQLContentEntry,
+  GetFolderContentArgs,
+  GetFileContentArgs,
+  DeleteFileContentArgs,
+  RepoInfo,
+  GetFilteredFilesContentArgs,
+  GraphQLClientErrorsEnum,
+  GitHubGraphQLError,
 } from '../types';
 
 const TYPENAME_BLOB = 'Blob'; // used to compare against GraphQL api responses
@@ -189,7 +195,7 @@ class FileApi implements FileApiInterface {
       branch: targetBranch || defaultBranch,
       path,
     }).catch((errorResponse: any[]) => {
-      if (get(errorResponse, 'errors[0].type') === AdapterError.NOT_FOUND) return null;
+      if (get(errorResponse, 'errors[0].type') === GraphQLClientErrorsEnum.NOT_FOUND) return null;
 
       throw errorResponse;
     });
@@ -197,7 +203,45 @@ class FileApi implements FileApiInterface {
     return get(response, 'repository.ref.target.file.object.text', null);
   }
 
-  getFolderContent = async (args: GetFolderContentArgs): Promise<GraphQLContentEntry[]> => {
+  getFilteredFilesContent = async (
+    args: GetFilteredFilesContentArgs,
+  ): Promise<(string | null
+)[]> => {
+    const { owner, name: repo, defaultBranch } = this._repoInfo;
+    const {
+      branch: targetBranch,
+      files,
+    } = args;
+    const filesInfo = files.map(({ id, path }) => ({
+      id,
+      path,
+      fieldName: `file_${id.replace(/[-\s]/g, '_')}`,
+    }));
+    const nonDupFiles = [...filesInfo.reduce((filesMap, file) => {
+      filesMap.set(file.id, file);
+
+      return filesMap;
+    }, new Map()).values()];
+    const response = await this.clients.graphql.getFilteredFilesContent({
+      owner,
+      repo,
+      branch: targetBranch || defaultBranch,
+      files: nonDupFiles,
+    }).catch((errorResponse: { data: any, errors: GitHubGraphQLError[] }) => {
+      const nonAllowedErrors = errorResponse.errors
+        .some(({ type }: any) => type !== GraphQLClientErrorsEnum.NOT_FOUND);
+
+      if (nonAllowedErrors) throw errorResponse.errors;
+
+      return errorResponse.data;
+    });
+
+    const filesMap = get(response, 'repository.ref.target');
+
+    return filesInfo.map(({ fieldName }) => filesMap[fieldName] || null);
+  }
+
+  getFolderContent = async (args: GetFolderContentArgs): Promise<string[]> => {
     const { owner, name: repo, defaultBranch } = this._repoInfo;
     const {
       branch: targetBranch,
@@ -210,7 +254,7 @@ class FileApi implements FileApiInterface {
       branch: targetBranch || defaultBranch,
       path,
     }).catch((errorResponse: any[]) => {
-      if (get(errorResponse, 'errors[0].type') === AdapterError.NOT_FOUND) return null;
+      if (get(errorResponse, 'errors[0].type') === GraphQLClientErrorsEnum.NOT_FOUND) return null;
 
       throw errorResponse;
     });
@@ -219,7 +263,8 @@ class FileApi implements FileApiInterface {
 
     const entries: GraphQLContentEntry[] = get(response, 'repository.ref.target.files.object.entries') || [];
     const filesContent = entries
-      .filter((entry: GraphQLContentEntry) => get(entry, 'object.__typename') === TYPENAME_BLOB);
+      .filter((entry: GraphQLContentEntry) => get(entry, 'object.__typename') === TYPENAME_BLOB)
+      .map((entry) => entry.object.text);
 
     return filesContent;
   }

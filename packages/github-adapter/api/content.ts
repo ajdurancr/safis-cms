@@ -9,21 +9,14 @@ import {
   FileContentTypesEnum,
   FileApiInterface,
   GenericContent,
-  GetFileContentArgs,
-  GetFolderContentArgs,
   RepoInfo,
   UnifiedClients,
   UpdateContentArgs,
-  RepoPathsEnum,
   GetContentArgs,
   GetAllContentArgs,
+  GetManyContentArgs,
 } from '../types';
 import { FILE_EXTENSION, repoPathTransforms } from '../constants';
-
-const defaultRepoPaths = {
-  [RepoPathsEnum.CONTENT]: 'content',
-  [RepoPathsEnum.CONTENT_TYPE]: 'contentType',
-};
 
 class ContentApi implements ContentApiInterface {
   protected fileContentTypeName: FileContentTypesEnum
@@ -140,15 +133,36 @@ class ContentApi implements ContentApiInterface {
       branch,
     });
 
-    return filesContent.reduce((filtered, entry) => {
-      const content = get(entry, 'object.text') as string | undefined;
-
+    return filesContent.reduce((filtered, content) => {
       if (!isNil(content)) {
         filtered.push(JSON.parse(content as string));
       }
 
       return filtered;
     }, [] as GenericContent[]);
+  }
+
+  getMany = async (args: GetManyContentArgs): Promise<(GenericContent | null)[]> => {
+    const { branch, files } = args;
+    const filesInfo = files.map(({ id, type }) => {
+      const fileName = this._getContentFileName(id);
+      const filePath = this._getFullPath(fileName, type);
+
+      return { path: filePath, id };
+    });
+
+    const filesContent: (string | null)[] = await this.fileApi.getFilteredFilesContent({
+      files: filesInfo,
+      branch,
+    });
+
+    return filesContent.reduce((filtered, entry) => {
+      const content = get(entry, 'object.text') as string | undefined;
+
+      filtered.push(!content ? null : JSON.parse(content as string));
+
+      return filtered;
+    }, [] as (GenericContent | null)[]);
   }
 
   update = async (args: UpdateContentArgs): Promise<GenericContent> => {

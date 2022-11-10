@@ -4,64 +4,50 @@ import {
   GraphQLObjectType,
   ThunkReadonlyArray,
 } from 'graphql';
-import { getGraphqlTypeName } from '../../helpers/graphql';
+import { getGraphqlTypeName, resolveContentOrRefType } from '../../helpers/graphql';
 import { GraphQLTypeGettersMap } from '../graphqlTypes';
 
 const createRefUnionType = ({
   contentTypeId,
   fieldId,
   graphQLTypeGettersMap,
-  refType,
+  refTypes,
 }: {
   contentTypeId: string
   fieldId: string
   graphQLTypeGettersMap: GraphQLTypeGettersMap
-  refType: string[]
+  refTypes: string[]
 }): GraphQLUnionType => {
-  const types: ThunkReadonlyArray<GraphQLObjectType<any, any>> = refType
+  const types: ThunkReadonlyArray<GraphQLObjectType<any, any>> = refTypes
     .map((graphqlType) => graphQLTypeGettersMap[graphqlType]() as GraphQLObjectType);
 
   return new GraphQLUnionType({
     name: `${getGraphqlTypeName(contentTypeId)}${getGraphqlTypeName(fieldId)}Items`,
     types,
+    resolveType: resolveContentOrRefType,
   });
-};
-
-const filterRefTypes = (refType: string[] = [], graphQLTypeGettersMap: GraphQLTypeGettersMap) => {
-  const fileteredRefTypes = refType.filter((type) => graphQLTypeGettersMap[type]);
-  const refTypesMap: { [key: string]: string } = fileteredRefTypes
-    .reduce((typesMap, type) => ({
-      ...typesMap,
-      [type]: type,
-    }), {});
-
-  const nonDuplicateRefTypes = Object.values(refTypesMap);
-
-  return nonDuplicateRefTypes;
 };
 
 const getRefType = ({
   contentTypeId,
   fieldId,
   graphQLTypeGettersMap,
-  refType = [],
+  refTypes = [],
 }: {
   contentTypeId: string
   fieldId: string
   graphQLTypeGettersMap: GraphQLTypeGettersMap
-  refType?: string[] | undefined
+  refTypes?: string[] | undefined
 }): GraphQLType => {
-  const fileteredRefTypes = filterRefTypes(refType, graphQLTypeGettersMap);
+  if (!refTypes.length) return graphQLTypeGettersMap.ContentInterface();
 
-  if (!fileteredRefTypes?.length) return graphQLTypeGettersMap.ContentInterface();
-
-  if (fileteredRefTypes.length === 1) return graphQLTypeGettersMap[fileteredRefTypes[0]]();
+  if (refTypes.length === 1) return graphQLTypeGettersMap[refTypes[0]]();
 
   return createRefUnionType({
     contentTypeId,
     fieldId,
     graphQLTypeGettersMap,
-    refType: fileteredRefTypes,
+    refTypes,
   });
 };
 

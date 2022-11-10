@@ -11,10 +11,8 @@ import { createContentInterface } from './content/content.interface';
 import { createContentSys } from './content/content.sys';
 import { createContentEnum } from './content/content.enum';
 import { createRefInput } from './content/content.ref.input';
-import type { ContentFieldTypeMap } from './index';
+import type { ContentFieldTypeMap, ResolverCreatorsMap } from './index';
 import { createUserDefinedContentTypesMap } from './content/content';
-
-type MaybeGraphQLType = GraphQLObjectType | undefined
 
 export type GraphQLTypeGetter<
   GraphQLReturnType =
@@ -42,6 +40,7 @@ export type SchemaGraphQLTypesMap = {
 const createGraphqlTypes = (
   contentTypesList: ContentType[],
   contentTypesMap: ContentTypesMap,
+  resolverCreators: ResolverCreatorsMap,
 ): {
   contentFieldTypeMap: ContentFieldTypeMap
   types: GraphQLTypeGettersMap
@@ -65,12 +64,13 @@ const createGraphqlTypes = (
   );
   const ContentSys = createContentSys(contentTypesMap, ContentType);
 
-  const userDefinedContentTypesMap = createUserDefinedContentTypesMap(
+  const userDefinedContentTypesMap = createUserDefinedContentTypesMap({
     contentTypesList,
-    contentFieldTypeMap,
+    graphqlContentFieldTypesMap: contentFieldTypeMap,
     // eslint-disable-next-line no-use-before-define
-    getTypeGetterMap,
-  );
+    getGraphqlTypeGetters: getTypeGetterMap,
+    resolverCreators,
+  });
 
   function getTypeGetterMap() {
     const graphqlTypes: { [type: string]: GraphQLType } = {

@@ -15,7 +15,7 @@ const addContentType: CMSResolver<ContextWithGitMetadata> = (
   context,
 ) => {
   const { branch } = context.git;
-  const id = data.id || camelCase(data.name);
+  const id = camelCase(data.id || data.name);
 
   return context.git.api.contentType.create({
     id,

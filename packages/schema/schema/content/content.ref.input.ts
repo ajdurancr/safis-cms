@@ -10,11 +10,11 @@ const createRefInput = (): GraphQLInputObjectType => new GraphQLInputObjectType(
   fields: () => ({
     id: {
       type: new GraphQLNonNull(GraphQLID),
-      description: 'System ID (`Content.sys.id`)',
+      description: '(`Content.sys.id`). System ID',
     },
     type: {
       type: new GraphQLNonNull(GraphQLString),
-      description: 'One of the types allowed in `field.refType` config.',
+      description: '(`ContentType.id`). One of the types allowed in `field.refTypes` config.',
     },
   }),
 });

@@ -1,16 +1,22 @@
 import {
   GraphQLFieldConfigMap,
   GraphQLType,
-  GraphQLEnumType,
+  GraphQLFieldConfig,
+  GraphQLFieldResolver,
 } from 'graphql';
 
-import type { ContentFieldTypeMap } from '../index';
+import type { ContentFieldTypeMap, ResolverCreatorsMap } from '../index';
 import { ContentType, ContentTypeFieldTypeEnum, FieldDefinition } from '../../types';
 import { GraphQLTypeGettersMap } from '../graphqlTypes';
 import { getRefType } from './content.fields.refType';
-import { createGraphqlFieldType as createFieldType } from '../../helpers/graphql';
+import {
+  createGraphqlFieldType,
+  filterRefTypes,
+  getGraphqlTypeName,
+  removeInvalidRefsFromRefResolver,
+} from '../../helpers/graphql';
 
-const createGraphqlFieldType = ({
+const createFieldType = ({
   contentTypeId,
   field,
   graphqlContentFieldTypesMap,
@@ -21,54 +27,66 @@ const createGraphqlFieldType = ({
   graphqlContentFieldTypesMap: ContentFieldTypeMap
   graphQLTypeGettersMap: GraphQLTypeGettersMap
 }): GraphQLType => {
-  const { type, refType, isRequired, isList, id: fieldId } = field;
+  const { type, refTypes, isRequired, isList, id: fieldId } = field;
   const { [type]: graphqlFieldTypeObj } = graphqlContentFieldTypesMap;
   const { type: graphqlFieldType } = graphqlFieldTypeObj || {};
   const graphqlRefType = graphqlContentFieldTypesMap[ContentTypeFieldTypeEnum.Ref].type;
 
-  const graphqlType = graphqlFieldType === graphqlRefType
+  const isRefType = graphqlFieldType === graphqlRefType;
+  const graphqlType = isRefType
     ? getRefType({
       contentTypeId,
       fieldId,
       graphQLTypeGettersMap,
-      refType,
+      refTypes,
     })
     : graphqlFieldType;
 
-  return createFieldType({ graphqlType, isList, isRequired });
+  return createGraphqlFieldType({ graphqlType, isList, isRequired: !isRefType && isRequired });
 };
 
-const createContentFieldsMap = (
+const createContentFieldsMap = ({
+  contentType,
+  graphqlContentFieldTypesMap,
+  graphQLTypeGettersMap,
+  resolverCreators,
+}: {
   contentType: ContentType,
   graphqlContentFieldTypesMap: ContentFieldTypeMap,
   graphQLTypeGettersMap: GraphQLTypeGettersMap,
-): GraphQLFieldConfigMap<any, any> => (
+  resolverCreators: ResolverCreatorsMap
+}): GraphQLFieldConfigMap<any, any> => (
   contentType.fields.reduce((fieldsMap, field) => {
-    const updatedField = { ...field };
+    const updatedField: FieldDefinition = { ...field };
+    const isRefType = field.type === ContentTypeFieldTypeEnum.Ref;
+    let fieldResolver: GraphQLFieldResolver<any, any> | undefined;
 
-    if (field.type === ContentTypeFieldTypeEnum.Ref) {
-      const contentEnum = graphQLTypeGettersMap.ContentEnum() as GraphQLEnumType;
-      const availableUserContentTypes: string[] = contentEnum.getValues().map(({ value }) => value);
-      const fileteredRefTypes = field.refType?.filter(
-        (rType) => availableUserContentTypes.includes(rType),
+    if (isRefType) {
+      const gqlRefTypes = updatedField.refTypes?.map(getGraphqlTypeName);
+      const fileteredRefTypes = filterRefTypes(gqlRefTypes, graphQLTypeGettersMap);
+
+      if (!fileteredRefTypes?.length) return fieldsMap;
+
+      updatedField.refTypes = fileteredRefTypes;
+
+      fieldResolver = removeInvalidRefsFromRefResolver(
+        updatedField,
+        resolverCreators.ref(updatedField),
       );
-
-      if (!fileteredRefTypes || !fileteredRefTypes.length) return fieldsMap;
-
-      updatedField.refType = fileteredRefTypes;
     }
 
     return {
       ...fieldsMap,
       [updatedField.id]: {
-        type: createGraphqlFieldType({
+        type: createFieldType({
           contentTypeId: contentType.id,
           field: updatedField,
           graphqlContentFieldTypesMap,
           graphQLTypeGettersMap,
         }),
         description: updatedField.description,
-      },
+        resolve: fieldResolver,
+      } as GraphQLFieldConfig<any, any>,
     };
   }, {})
 );

@@ -33,11 +33,15 @@
   },
   "dependencies": {
     "graphql": "16.6.0",
+    "lodash.camelcase": "4.3.0",
+    "lodash.get": "4.4.2",
     "lodash.startcase": "4.4.0",
     "uuid": "9.0.0"
   },
   "devDependencies": {
     "@safis/cms-tsconfig": "*",
+    "@types/lodash.camelcase": "4.3.7",
+    "@types/lodash.get": "4.4.7",
     "@types/lodash.startcase": "4.4.7",
     "@types/uuid": "8.3.4",
     "typescript": "4.7.4"

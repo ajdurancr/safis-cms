@@ -11,6 +11,8 @@ import type {
   CMSGraphQLFieldResolver,
   Content,
   ContentType,
+  FieldDefinition,
+  RefResult,
   SchemaUpdaterFn,
 } from '../types';
 import { createQuery } from './query';
@@ -62,7 +64,17 @@ export type ContentCollectionResolver = CMSGraphQLFieldResolver<
   Promise<Content[]>
 >
 
-export type ResolverCreatorFn<TResolver> = (contentType: ContentType) => TResolver
+export type RefResolver = CMSGraphQLFieldResolver<
+  any,
+  any,
+  any,
+  Promise<RefResult | RefResult[]>
+>
+
+export type ResolverCreatorFn<
+  TResolver,
+  TMetadata = ContentType,
+> = (metadata: TMetadata) => TResolver
 
 export type ResolverCreatorsMap = {
   content: ResolverCreatorFn<ContentResolver>
@@ -71,6 +83,8 @@ export type ResolverCreatorsMap = {
   addContent: ResolverCreatorFn<ContentResolver>
   deleteContent: ResolverCreatorFn<CMSGraphQLFieldResolver<any, any, any, Promise<boolean>>>
   updateContent: ResolverCreatorFn<ContentResolver>
+
+  ref: ResolverCreatorFn<RefResolver, FieldDefinition>
 }
 
 type CreateSchemaArgs = {
@@ -96,7 +110,7 @@ const createSchema = ({
   const {
     types: graphqlTypesMap,
     contentFieldTypeMap,
-  } = createGraphqlTypes(contentTypesList, contentTypesMap);
+  } = createGraphqlTypes(contentTypesList, contentTypesMap, resolverCreatorsMap);
 
   return new GraphQLSchema({
     query: createQuery(

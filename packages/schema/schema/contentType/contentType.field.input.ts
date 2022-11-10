@@ -1,40 +1,21 @@
 import {
-  GraphQLString,
   GraphQLEnumType,
-  GraphQLNonNull,
   GraphQLInputObjectType,
-  GraphQLBoolean,
-  GraphQLList,
+  GraphQLInputFieldConfigMap,
 } from 'graphql';
 
 import { GetGraphQLTypeGettersMapFn } from '../graphqlTypes';
+import { createFieldsConfigMap } from './contentType.field.fieldsConfigMap';
 
 const createContentTypeFieldInput = (
-  getTypeGetterMap: GetGraphQLTypeGettersMapFn,
+  getGraphQLTypeGettersMap: GetGraphQLTypeGettersMapFn,
 ): GraphQLInputObjectType => new GraphQLInputObjectType({
   name: 'ContentTypeFieldInput',
   fields: () => {
-    const fieldTypeEnum = getTypeGetterMap().ContentFieldTypeEnum() as GraphQLEnumType;
-    const contentEnum = getTypeGetterMap().ContentEnum() as GraphQLEnumType;
-    const availableUserContentTypes: string[] = contentEnum.getValues().map(({ value }) => value);
-    const refTypeDescription = availableUserContentTypes.length
-      ? `\`${availableUserContentTypes.join('` | `')}\``
-      : 'No types available yet.';
+    const contentEnum = getGraphQLTypeGettersMap().ContentEnum() as GraphQLEnumType;
+    const fieldTypeEnum = getGraphQLTypeGettersMap().ContentFieldTypeEnum() as GraphQLEnumType;
 
-    return {
-      id: { type: new GraphQLNonNull(GraphQLString) },
-      name: { type: new GraphQLNonNull(GraphQLString) },
-      description: { type: GraphQLString },
-      type: { type: new GraphQLNonNull(fieldTypeEnum) },
-      refType: {
-        type: new GraphQLList(
-          new GraphQLNonNull(GraphQLString),
-        ),
-        description: refTypeDescription,
-      },
-      isList: { type: GraphQLBoolean },
-      isRequired: { type: GraphQLBoolean },
-    };
+    return createFieldsConfigMap(contentEnum, fieldTypeEnum) as GraphQLInputFieldConfigMap;
   },
 });
 
