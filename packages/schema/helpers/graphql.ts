@@ -77,44 +77,9 @@ const filterRefTypes = (
   return nonDuplicateRefTypes;
 };
 
-// wraps refResolver in order to remove invalid refs added by the user
-const removeInvalidRefsFromRefResolver = (
-  field: FieldDefinition,
-  refResolver: RefResolver,
-): RefResolver => {
-  if (!field.refTypes?.length) return refResolver;
-
-  return (source, args, context, info) => {
-    const { id: refFieldId, refTypes, isList } = field;
-    const { [refFieldId]: refs } = source;
-
-    if (
-      !refs // required to validate individual refs
-      || !refs.length
-    ) {
-      return refResolver(source, args, context, info);
-    }
-
-    const updatedSource = { ...source };
-
-    if (isList) {
-      updatedSource[refFieldId] = (refs as ContentRef[])?.filter(({ type }) => (
-        refTypes?.includes(getGraphqlTypeName(type))
-      ));
-    } else {
-      updatedSource[refFieldId] = refTypes?.includes(getGraphqlTypeName(refs?.type))
-        ? refs
-        : undefined;
-    }
-
-    return refResolver(updatedSource, args, context, info);
-  };
-};
-
 export {
   createGraphqlFieldType,
   filterRefTypes,
   getGraphqlTypeName,
   resolveContentOrRefType,
-  removeInvalidRefsFromRefResolver,
 };

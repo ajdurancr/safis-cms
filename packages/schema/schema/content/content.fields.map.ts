@@ -13,7 +13,6 @@ import {
   createGraphqlFieldType,
   filterRefTypes,
   getGraphqlTypeName,
-  removeInvalidRefsFromRefResolver,
 } from '../../helpers/graphql';
 
 const createFieldType = ({
@@ -69,10 +68,7 @@ const createContentFieldsMap = ({
 
       updatedField.refTypes = fileteredRefTypes;
 
-      fieldResolver = removeInvalidRefsFromRefResolver(
-        updatedField,
-        resolverCreators.ref(updatedField),
-      );
+      fieldResolver = resolverCreators.ref(updatedField);
     }
 
     return {
