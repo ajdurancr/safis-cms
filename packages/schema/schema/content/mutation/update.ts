@@ -9,7 +9,7 @@ import {
 } from 'graphql';
 
 import { ObjMap } from 'graphql/jsutils/ObjMap';
-import { getGraphqlTypeName } from '../../../helpers/graphql';
+import { createGraphqlFieldType, getGraphqlTypeName } from '../../../helpers/graphql';
 import { ContentType, ContentTypeFieldTypeEnum } from '../../../types';
 import type { ContentFieldTypeMap, ContentResolver, ResolverCreatorFn } from '../../index';
 import { GraphQLTypeGettersMap } from '../../graphqlTypes';
@@ -19,17 +19,21 @@ const getInputTypeName = (contentTypeId: string): string => `Update${getGraphqlT
 const createUpdateContentInput = (
   contentType: ContentType,
   contentFieldTypeMap: ContentFieldTypeMap,
+  graphqlRefInputType: GraphQLInputObjectType,
 ) => {
   const inputFieldConfigMap = contentType.fields
-    .filter(({ type }) => type !== ContentTypeFieldTypeEnum.Ref) // TODO: enable Ref types
     .reduce((inputsMap, field) => {
       const graphqlFieldTypeConfig = contentFieldTypeMap[field.type];
-      const fieldTypeAsRequired = field.isRequired
-        ? new GraphQLNonNull(graphqlFieldTypeConfig.type)
-        : graphqlFieldTypeConfig.type;
+      const graphqlRefType = contentFieldTypeMap[ContentTypeFieldTypeEnum.Ref].type;
+      const isRefType = graphqlFieldTypeConfig.type === graphqlRefType;
+      const graphqlType = isRefType ? graphqlRefInputType : graphqlFieldTypeConfig.type;
 
       const fieldInputConfig: GraphQLInputFieldConfig = {
-        type: fieldTypeAsRequired as GraphQLScalarType,
+        type: createGraphqlFieldType({
+          graphqlType,
+          isList: field.isList,
+          isRequired: isRefType,
+        }) as GraphQLScalarType | GraphQLInputObjectType,
         description: field.description,
       };
 
@@ -58,7 +62,11 @@ const createUpdateContentMutationsMap = ({
   .reduce((contentQueries, contentType) => {
     const graphqlTypeName = getGraphqlTypeName(contentType.id);
     const graphqlType = graphqlTypes[graphqlTypeName]() as GraphQLObjectType;
-    const updateContentInput = createUpdateContentInput(contentType, contentFieldTypeMap);
+    const updateContentInput = createUpdateContentInput(
+      contentType,
+      contentFieldTypeMap,
+      graphqlTypes.RefInput() as GraphQLInputObjectType,
+    );
     const updateContentResolver = resolverCreatorFn(contentType);
     const args = {
       id: {
