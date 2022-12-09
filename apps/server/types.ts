@@ -1,7 +1,7 @@
 import type {
   GitAdapterApi,
   RepoPaths,
-} from '@safis/cms-github-adapter/types';
+} from '@safis/cms-github-adapter';
 import type {
   CMSGraphQLFieldResolver,
   ContentType,
