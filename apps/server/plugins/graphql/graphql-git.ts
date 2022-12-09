@@ -56,7 +56,7 @@ const graphqlGitPlugin: FastifyPluginCallback = async (
   instance.log.info(`Preparing repository: ${owner}/${repo}`);
 
   await gitAdapter
-    .initRepo()
+    .init()
     .then(() => {
       instance.log.info(`Repository ready: ${owner}/${repo}`);
     })

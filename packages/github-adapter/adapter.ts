@@ -40,7 +40,7 @@ class GitHubAdapter {
     };
   }
 
-  async initRepo(): Promise<void> {
+  async init(): Promise<GitHubAdapter> {
     const { ownerSecret } = this._authInfo;
     const { owner, name, createAsPrivate, paths } = this._initialRepoInfo;
     const tempClients = this.getClients(ownerSecret);
@@ -57,6 +57,8 @@ class GitHubAdapter {
       name,
       paths,
     };
+
+    return this;
   }
 
   private getClients = (secret: string): UnifiedClients => {
