@@ -4,7 +4,8 @@
   "description": "GitHub adapter for Safis CMS",
   "scripts": {
     "build": "tsc",
-    "clean": "rm -rf dist/*"
+    "clean": "rm -rf dist/*",
+    "test": "jest"
   },
   "repository": {
     "type": "git",
@@ -36,7 +37,8 @@
   "dependencies": {
     "@octokit/core": "^3.1.2",
     "lodash.get": "^4.4.2",
-    "lodash.isnil": "^4.0.0"
+    "lodash.isnil": "^4.0.0",
+    "zod": "3.19.1"
   },
   "devDependencies": {
     "@safis/cms-tsconfig": "*",

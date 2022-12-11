@@ -1,4 +1,5 @@
 import { Octokit } from '@octokit/core';
+import { z } from 'zod';
 
 import {
   AuthInfo,
@@ -8,8 +9,6 @@ import {
   InitialConfigs,
   RepoConfig,
   RepoInfo,
-  RepoPaths,
-  RepoPathsEnum,
   UnifiedClients,
 } from './types';
 import { GraphQLClient } from './client/graphql';
@@ -18,6 +17,37 @@ import { ContentApi } from './api/content';
 import { OAuthApi } from './api/oauth';
 import { RepositoryApi } from './api/repository';
 import { UserApi } from './api/user';
+import { buildFullPaths, zodParse } from './helpers';
+import { GitAdpaterError } from './error';
+import { adapterSchema } from './zodSchema';
+
+const zAuthInfo = z.object({ ownerSecret: adapterSchema.secret });
+
+const zRepoConfig = z.object({
+  name: z.string().min(1),
+  owner: z.string({ required_error: 'owner property is required' }).min(1),
+  paths: adapterSchema.repoPath,
+  createAsPrivate: z.boolean().optional().default(false),
+}, { required_error: 'repo property is required' });
+
+const zInitialConfig = z.object({
+  auth: zAuthInfo,
+  repo: zRepoConfig,
+}, { required_error: 'initial config is required' });
+
+const createGitHubClients = (secret: string): UnifiedClients => {
+  const parseSecret = zodParse(adapterSchema.secret, secret);
+
+  const {
+    graphql: ghGraphqlClient,
+    request: ghRestClient,
+  } = new Octokit({ auth: parseSecret });
+
+  return {
+    rest: new RestClient(ghRestClient),
+    graphql: new GraphQLClient(ghGraphqlClient),
+  };
+};
 
 class GitHubAdapter {
   private _authInfo: AuthInfo
@@ -32,20 +62,27 @@ class GitHubAdapter {
 
   static getLoginUrl = OAuthApi.getLoginUrl
 
-  constructor({ auth, repo }: InitialConfigs) {
-    this._authInfo = auth;
-    this._initialRepoInfo = {
-      ...repo,
-      paths: this._buildFullPaths(repo.paths),
-    };
+  constructor(config: InitialConfigs) {
+    const parsedConfig = zodParse(zInitialConfig, config);
+
+    this._authInfo = parsedConfig.auth;
+    this._initialRepoInfo = parsedConfig.repo;
   }
 
-  async init(): Promise<GitHubAdapter> {
+  async init(): Promise<void> {
     const { ownerSecret } = this._authInfo;
     const { owner, name, createAsPrivate, paths } = this._initialRepoInfo;
-    const tempClients = this.getClients(ownerSecret);
+    const fullPaths = buildFullPaths(paths);
+    const tempClients = createGitHubClients(ownerSecret);
 
-    const repoApi = new RepositoryApi(tempClients, this._initialRepoInfo as RepoInfo);
+    const repoApi = new RepositoryApi(
+      tempClients,
+      {
+        owner,
+        name,
+        paths: fullPaths,
+      } as RepoInfo,
+    );
 
     await repoApi.init({ isPrivate: Boolean(createAsPrivate) });
 
@@ -55,34 +92,15 @@ class GitHubAdapter {
       defaultBranch,
       owner,
       name,
-      paths,
-    };
-
-    return this;
-  }
-
-  private getClients = (secret: string): UnifiedClients => {
-    if (!secret) {
-      throw new Error('Secret was not provided.');
-    }
-
-    const {
-      graphql: graphqlClient,
-      request: restClient,
-    } = new Octokit({ auth: secret });
-
-    return {
-      rest: new RestClient(restClient),
-      graphql: new GraphQLClient(graphqlClient),
+      paths: fullPaths,
     };
   }
 
   createGitApi = (args: CreateGitApiArgs): GitAdapterApi => {
-    if (!args || !args.secret || !this._repoInfo) {
-      throw new Error('Clients were not inialized correctly.');
-    }
+    if (!this._repoInfo) throw new GitAdpaterError('Adapter not inialized');
 
-    const clients = this.getClients(args.secret);
+    const parsedSecret = zodParse(adapterSchema.secret, args?.secret);
+    const clients = createGitHubClients(parsedSecret);
 
     return {
       content: new ContentApi(clients, this._repoInfo, FileContentTypesEnum.CONTENT),
@@ -92,57 +110,16 @@ class GitHubAdapter {
     };
   }
 
-  private _buildFullPaths = (paths: RepoPaths): RepoPaths => {
-    const {
-      root: rootFolder,
-      contentType: contentTypeFolder,
-      content: contentFolder,
-    } = paths || {};
-
-    if (!contentTypeFolder) {
-      throw new Error(`${RepoPathsEnum.CONTENT_TYPE} path is required.`);
+  static getAuthInfoFromRequest = (requestObj: { [key: string]: any }): CreateGitApiArgs => {
+    if (typeof requestObj !== 'object' || requestObj[GitHubAdapter.AUTH_KEY_NAME]) {
+      throw new GitAdpaterError('Unable to find auth info in request object');
     }
 
-    if (!contentFolder) {
-      throw new Error(`${RepoPathsEnum.CONTENT} path is required.`);
-    }
-
-    if (contentFolder === contentTypeFolder) {
-      throw new Error(
-        `${RepoPathsEnum.CONTENT_TYPE} and ${RepoPathsEnum.CONTENT} paths must be different.`,
-      );
-    }
-
-    const rootPath = !rootFolder || rootFolder.endsWith('/')
-      ? rootFolder
-      : `${rootFolder}/`;
-
-    const contentTypePath = contentTypeFolder.endsWith('/')
-      ? contentTypeFolder
-      : `${contentTypeFolder}/`;
-
-    const contentPath = contentFolder.endsWith('/')
-      ? contentFolder
-      : `${contentFolder}/`;
-
-    return {
-      root: rootPath,
-      contentType: rootFolder
-        ? `${rootFolder}${contentTypePath}`
-        : contentTypePath,
-      content: rootFolder
-        ? `${rootFolder}${contentPath}`
-        : contentPath,
-    };
-  };
-
-  static getAuthInfoFromRequest = (obj: { [key: string]: any }): CreateGitApiArgs => {
-    if (typeof obj !== 'object' || obj[GitHubAdapter.AUTH_KEY_NAME]) {
-      throw new Error('No secret was not found in request.');
-    }
-
-    return { secret: obj[GitHubAdapter.AUTH_KEY_NAME] };
+    return { secret: requestObj[GitHubAdapter.AUTH_KEY_NAME] };
   }
 }
 
-export { GitHubAdapter };
+export {
+  GitHubAdapter,
+  createGitHubClients,
+};
