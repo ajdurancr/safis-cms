@@ -23,8 +23,8 @@ const PATHS_CONFIG: RepoPaths = {
 };
 
 const FULL_PATHS: RepoPaths = {
-  content: `/${PATHS_CONFIG.content}/`,
-  contentType: `/${PATHS_CONFIG.content}/`,
+  content: `${PATHS_CONFIG.content}/`,
+  contentType: `${PATHS_CONFIG.content}/`,
 };
 
 const INITIAL_CONFIGS = {
