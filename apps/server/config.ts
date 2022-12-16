@@ -1,3 +1,4 @@
+import { RepoPaths } from '@safis/cms-github-adapter';
 import dotenv from 'dotenv';
 
 import {
@@ -45,10 +46,9 @@ const secrets: SecretsConfig = {
 checkConfig('secrets', secrets);
 
 // Git
-const envGitPaths = {
-  root: process.env.GIT_ROOT_FOLDER,
-  contentType: process.env.GIT_CONTENT_TYPES_FOLDER = CONTENT_TYPES_FOLDER,
-  content: process.env.GIT_CONTENT_FOLDER = CONTENT_FOLDER,
+const envGitPaths: RepoPaths = {
+  contentType: process.env.GIT_CONTENT_TYPES_FOLDER || CONTENT_TYPES_FOLDER,
+  content: process.env.GIT_CONTENT_FOLDER || CONTENT_FOLDER,
 };
 
 const gitConfig: GitConfig = {

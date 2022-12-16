@@ -10,30 +10,29 @@ import { UserApi } from './api/user';
 import { buildFullPaths } from './helpers';
 import { FileContentTypesEnum, RepoPaths } from './types';
 import { GitAdpaterError, ValidationError } from './error';
+import { DEFAULT_REPO_DESCRIPTION } from './constants';
 
 const DEFAULT_BRANCH = 'default-test-branch';
 const OWNER_SECRET = 'secret-1234';
 const REPO_NAME = 'test-repo';
 const REPO_OWNER = 'test-owner';
 
-const PATHS_CONFIG = Object.freeze({
+const PATHS_CONFIG: RepoPaths = {
   content: 'test-content-path',
   contentType: 'test-content-type-path',
-  root: 'root-folder',
-});
+};
 
-const FULL_PATHS: RepoPaths = Object.freeze({
-  content: `${PATHS_CONFIG.root}/${PATHS_CONFIG.content}/`,
-  contentType: `${PATHS_CONFIG.root}/${PATHS_CONFIG.content}/`,
-  root: `${PATHS_CONFIG.root}/`,
-});
+const FULL_PATHS: RepoPaths = {
+  content: `/${PATHS_CONFIG.content}/`,
+  contentType: `/${PATHS_CONFIG.content}/`,
+};
 
 const INITIAL_CONFIGS = {
   auth: { ownerSecret: OWNER_SECRET },
   repo: {
+    owner: REPO_OWNER,
     name: REPO_NAME,
     paths: PATHS_CONFIG,
-    owner: REPO_OWNER,
   },
 };
 
@@ -71,7 +70,14 @@ jest.mock('./api/content', () => ({
 }));
 
 const repoApiInit = jest.fn(() => Promise.resolve());
-const repoApiGetInfo = jest.fn(() => Promise.resolve({ defaultBranch: DEFAULT_BRANCH }));
+const repoApiGetInfo = jest.fn(() => Promise.resolve({
+  owner: REPO_OWNER,
+  name: REPO_NAME,
+  description: DEFAULT_REPO_DESCRIPTION,
+  defaultBranch: DEFAULT_BRANCH,
+  isPrivate: false,
+  paths: FULL_PATHS,
+}));
 const REPO_API_INSTANCE = {
   init: repoApiInit,
   getInfo: repoApiGetInfo,
@@ -295,17 +301,6 @@ describe('GitHubAdapter', () => {
           path: [
             'repo',
             'paths',
-            'root',
-          ],
-          message: 'root path is required',
-        },
-        {
-          code: 'invalid_type',
-          expected: 'string',
-          received: 'undefined',
-          path: [
-            'repo',
-            'paths',
             'content',
           ],
           message: 'content path is required',
@@ -344,17 +339,30 @@ describe('GitHubAdapter', () => {
       expect(adapter['_repoInfo']).toEqual({
         owner: REPO_OWNER,
         name: REPO_NAME,
+        description: DEFAULT_REPO_DESCRIPTION,
         defaultBranch: DEFAULT_BRANCH,
+        isPrivate: false,
         paths: FULL_PATHS,
       });
     });
 
     test('inits correctly with createAsPrivate=true', async () => {
+      const createAsPrivate = true;
+
+      repoApiGetInfo.mockResolvedValueOnce({
+        owner: REPO_OWNER,
+        name: REPO_NAME,
+        description: DEFAULT_REPO_DESCRIPTION,
+        isPrivate: createAsPrivate,
+        defaultBranch: DEFAULT_BRANCH,
+        paths: FULL_PATHS,
+      });
+
       const adapter = new GitHubAdapter({
         auth: INITIAL_CONFIGS.auth,
         repo: {
           ...INITIAL_CONFIGS.repo,
-          createAsPrivate: true,
+          createAsPrivate,
         },
       });
 
@@ -373,6 +381,8 @@ describe('GitHubAdapter', () => {
       expect(adapter['_repoInfo']).toEqual({
         owner: REPO_OWNER,
         name: REPO_NAME,
+        description: DEFAULT_REPO_DESCRIPTION,
+        isPrivate: createAsPrivate,
         defaultBranch: DEFAULT_BRANCH,
         paths: FULL_PATHS,
       });
@@ -385,6 +395,8 @@ describe('GitHubAdapter', () => {
         owner: REPO_OWNER,
         name: REPO_NAME,
         defaultBranch: DEFAULT_BRANCH,
+        description: DEFAULT_REPO_DESCRIPTION,
+        isPrivate: false,
         paths: FULL_PATHS,
       };
 

@@ -8,7 +8,6 @@ export const VISIBILITY_PUBLIC = 'public';
 export const defaultBranches = Object.freeze({ [GITHUB_ADAPTER]: 'main' });
 
 // paths
-export const ROOT_FOLDER = '';
 export const CONTENT_TYPES_FOLDER = 'contentTypes';
 export const CONTENT_FOLDER = 'content';
 

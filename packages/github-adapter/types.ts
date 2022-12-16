@@ -1,5 +1,18 @@
 /* eslint-disable camelcase */
 
+import { z } from 'zod';
+import { adapterSchema } from './zodSchema';
+
+// Zod based types
+
+export type RepoPaths = z.infer<typeof adapterSchema.repoPaths>
+
+export type RepoInput = z.infer<typeof adapterSchema.repoInput>
+
+export type RepoInfo = z.infer<typeof adapterSchema.repoInfo>
+
+export type GitApiArgs = z.infer<typeof adapterSchema.gitApiArgs>;
+
 // Git
 
 export enum GitItemType {
@@ -480,14 +493,6 @@ export enum InitRepoResponse {
   FOUND = 'FOUND', // repo was found
 }
 
-export type GetRepoInfoResponse = {
-  owner: string
-  name: string
-  description: string
-  defaultBranch: string
-  isPrivate: boolean
-}
-
 // Repository Api args
 
 export type InitRepoArgs = {
@@ -499,7 +504,7 @@ export type InitRepoArgs = {
 
 export interface RespositoryApiInterface {
   init: (args: InitRepoArgs) => Promise<InitRepoResponse>,
-  getInfo: () => Promise<GetRepoInfoResponse>,
+  getInfo: () => Promise<RepoInfo>,
 }
 
 // User Api main interface
@@ -524,33 +529,6 @@ export type AuthInfo = {
 }
 
 export enum RepoPathsEnum {
-  ROOT = 'root',
   CONTENT = 'content',
   CONTENT_TYPE = 'contentType',
-}
-
-export type RepoPaths = {
-  [RepoPathsEnum.ROOT]: string | undefined
-  [RepoPathsEnum.CONTENT]: string
-  [RepoPathsEnum.CONTENT_TYPE]: string
-}
-
-export type RepoConfig = {
-  name: string
-  owner: string
-  paths: RepoPaths
-  createAsPrivate?: boolean
-}
-
-export type RepoInfo = Omit<RepoConfig, 'createAsPrivate'> & {
-  defaultBranch: string
-}
-
-export type InitialConfigs = {
-  repo: RepoConfig
-  auth: AuthInfo
-}
-
-export type CreateGitApiArgs = {
-  secret: string
 }

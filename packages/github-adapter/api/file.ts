@@ -1,4 +1,5 @@
 import get from 'lodash.get';
+import { z } from 'zod';
 
 import {
   GitFileMode,
@@ -16,22 +17,32 @@ import {
   GetFolderContentArgs,
   GetFileContentArgs,
   DeleteFileContentArgs,
-  RepoInfo,
   GetFilteredFilesContentArgs,
   GraphQLClientErrorsEnum,
   GitHubGraphQLError,
 } from '../types';
+import { adapterSchema } from '../zodSchema';
+import { zodParse } from '../helpers';
 
 const TYPENAME_BLOB = 'Blob'; // used to compare against GraphQL api responses
+
+const zRepoArgs = adapterSchema.repoInfo.pick({
+  owner: true,
+  name: true,
+  defaultBranch: true,
+});
+
+type RepoArgs = z.infer<typeof zRepoArgs>
 
 class FileApi implements FileApiInterface {
   protected clients: UnifiedClients
 
-  private _repoInfo: RepoInfo
+  private _repoInfo: RepoArgs
 
-  constructor(unifiedClients: UnifiedClients, repoInfo: RepoInfo) {
+  constructor(unifiedClients: UnifiedClients, repoInfo: RepoArgs) {
+    zodParse(zRepoArgs, repoInfo);
+
     this.clients = unifiedClients;
-
     this._repoInfo = repoInfo;
   }
 

@@ -15,6 +15,7 @@ import {
   GetContentArgs,
   GetAllContentArgs,
   GetManyContentArgs,
+  RepoPathsEnum,
 } from '../types';
 import { FILE_EXTENSION, repoPathTransforms } from '../constants';
 
@@ -25,7 +26,7 @@ class ContentApi implements ContentApiInterface {
 
   protected repoInfo: RepoInfo
 
-  protected rootPath: string
+  protected path: string
 
   constructor(
     clients: UnifiedClients,
@@ -33,20 +34,20 @@ class ContentApi implements ContentApiInterface {
     fileContentTypeName: FileContentTypesEnum,
   ) {
     this.fileContentTypeName = fileContentTypeName;
-    const repoPathType = repoPathTransforms[fileContentTypeName];
-    this.rootPath = repoInfo.paths[repoPathType] as string;
+    const repoPathType: RepoPathsEnum = repoPathTransforms[fileContentTypeName];
     this.repoInfo = repoInfo;
+    this.path = repoInfo.paths[repoPathType];
     this.fileApi = new FileApi(clients, repoInfo);
   }
 
   private _getFullPath = (contentPath: string, subFolder?: string): string => `${this._getFolderPath(subFolder)}${contentPath}`
 
   private _getFolderPath = (subFolderName?: string): string => {
-    if (!subFolderName) return this.rootPath;
+    if (!subFolderName) return this.path;
 
     const subFolderPath = subFolderName.endsWith('/') ? subFolderName : `${subFolderName}/`;
 
-    return `${this.rootPath}${subFolderPath}`;
+    return `${this.path}${subFolderPath}`;
   }
 
   private _getContentFileName = (id: string): string => {

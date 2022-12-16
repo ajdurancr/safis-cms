@@ -3,10 +3,7 @@ import { RepoPathsEnum } from './types';
 
 const createPathRequiredMsg = (path: RepoPathsEnum) => `${path} path is required`;
 
-const repoPath = z.object({
-  [RepoPathsEnum.ROOT]: z
-    .string({ required_error: createPathRequiredMsg(RepoPathsEnum.ROOT) })
-    .min(1),
+const repoPaths = z.object({
   [RepoPathsEnum.CONTENT]: z
     .string({ required_error: createPathRequiredMsg(RepoPathsEnum.CONTENT) })
     .min(1),
@@ -20,7 +17,32 @@ const secret = z.string({
   invalid_type_error: 'secret must be a string',
 }).min(1);
 
+const repoInfo = z.object({
+  name: z.string().min(1),
+  owner: z.string({ required_error: 'owner property is required' }).min(1),
+  description: z.string({ required_error: 'description property is required' }).min(1),
+  defaultBranch: z.string({ required_error: 'defaultBranch property is required' }).min(1),
+  isPrivate: z.boolean(),
+  paths: repoPaths,
+});
+
+const repoInput = repoInfo.pick({
+  name: true,
+  owner: true,
+}).extend({
+  paths: repoPaths,
+  createAsPrivate: z.boolean().optional(),
+});
+
+const gitApiArgs = z.object({ secret });
+
 export const adapterSchema = {
   secret,
-  repoPath,
+
+  repoPaths,
+
+  repoInput,
+  repoInfo,
+
+  gitApiArgs,
 };

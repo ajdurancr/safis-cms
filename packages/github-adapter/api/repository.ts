@@ -1,33 +1,49 @@
 import get from 'lodash.get';
+import { z } from 'zod';
 
-import { FileApi } from './file';
-import { DEFAULT_REPO_DESCRIPTION } from '../constants';
 import {
   InitRepoArgs,
   InitRepoResponse,
-  FileApiInterface,
   RespositoryApiInterface,
   UnifiedClients,
-  RepoInfo,
   GraphQLGetRepositoryResponse,
-  GetRepoInfoResponse,
+  RepoInfo,
+  RepoPaths,
 } from '../types';
+import { FileApi } from './file';
+import { DEFAULT_REPO_DESCRIPTION } from '../constants';
+import { adapterSchema } from '../zodSchema';
+import { zodParse } from '../helpers';
+
+const zRepoArgs = adapterSchema.repoInfo.pick({
+  owner: true,
+  name: true,
+  paths: true,
+});
+
+type RepoArgs = z.infer<typeof zRepoArgs>
 
 class RepositoryApi implements RespositoryApiInterface {
   protected clients: UnifiedClients
 
-  protected fileApi: FileApiInterface
+  private _defaultBranch?: string
 
-  private _repoInfo: RepoInfo
+  private _owner: string
 
-  constructor(unifiedClients: UnifiedClients, repoInfo: RepoInfo) {
-    this._repoInfo = repoInfo;
+  private _name: string
+
+  private _paths: RepoPaths
+
+  constructor(unifiedClients: UnifiedClients, repoArgs: RepoArgs) {
+    const parsedArgs = zodParse(zRepoArgs, repoArgs);
+
+    this._owner = parsedArgs.owner;
+    this._name = parsedArgs.name;
+    this._paths = parsedArgs.paths;
     this.clients = unifiedClients;
-    this.fileApi = new FileApi(this.clients, this._repoInfo);
   }
 
   init = async (args: InitRepoArgs): Promise<InitRepoResponse> => {
-    const { name } = this._repoInfo;
     const {
       isPrivate = false,
       description,
@@ -40,11 +56,12 @@ class RepositoryApi implements RespositoryApiInterface {
       });
 
     if (get(existingRepoInfo, 'name')) {
-      this._repoInfo.defaultBranch = this._repoInfo.defaultBranch
-        || get(existingRepoInfo, 'defaultBranch');
+      this._defaultBranch = this._defaultBranch || get(existingRepoInfo, 'defaultBranch');
 
       return InitRepoResponse.FOUND;
     }
+
+    const name = this._name;
 
     const { default_branch: defaultBranch } = await this.clients.rest.createRepository({
       name,
@@ -52,9 +69,15 @@ class RepositoryApi implements RespositoryApiInterface {
       isPrivate,
     });
 
-    this._repoInfo.defaultBranch = this._repoInfo.defaultBranch || defaultBranch;
+    this._defaultBranch = defaultBranch;
 
-    await this.fileApi.createFileContent({
+    const fileApi = new FileApi(this.clients, {
+      name,
+      owner: this._owner,
+      defaultBranch,
+    });
+
+    await fileApi.createFileContent({
       branch: defaultBranch,
       files: {
         path: 'README.md',
@@ -66,14 +89,15 @@ class RepositoryApi implements RespositoryApiInterface {
     return InitRepoResponse.CREATED;
   }
 
-  getInfo = async (): Promise<GetRepoInfoResponse> => {
-    const { owner, name } = this._repoInfo;
+  getInfo = async (): Promise<RepoInfo> => {
+    const name = this._name;
+    const owner = this._owner;
+
     const { repository }: GraphQLGetRepositoryResponse = await this.clients
       .graphql
       .getRepository({ owner, name });
 
     const {
-      name: ghName,
       description: ghDescription,
       defaultBranchRef: { name: ghBranchName },
       isPrivate: ghIsPrivate,
@@ -81,10 +105,11 @@ class RepositoryApi implements RespositoryApiInterface {
 
     return {
       owner,
-      name: ghName,
+      name,
       description: ghDescription,
       defaultBranch: ghBranchName,
       isPrivate: ghIsPrivate,
+      paths: this._paths,
     };
   }
 }

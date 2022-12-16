@@ -3,11 +3,10 @@ import { z } from 'zod';
 
 import {
   AuthInfo,
-  CreateGitApiArgs,
   FileContentTypesEnum,
   GitAdapterApi,
-  InitialConfigs,
-  RepoConfig,
+  GitApiArgs,
+  RepoInput,
   RepoInfo,
   UnifiedClients,
 } from './types';
@@ -23,17 +22,12 @@ import { adapterSchema } from './zodSchema';
 
 const zAuthInfo = z.object({ ownerSecret: adapterSchema.secret });
 
-const zRepoConfig = z.object({
-  name: z.string().min(1),
-  owner: z.string({ required_error: 'owner property is required' }).min(1),
-  paths: adapterSchema.repoPath,
-  createAsPrivate: z.boolean().optional().default(false),
-}, { required_error: 'repo property is required' });
-
 const zInitialConfig = z.object({
   auth: zAuthInfo,
-  repo: zRepoConfig,
+  repo: adapterSchema.repoInput,
 }, { required_error: 'initial config is required' });
+
+type InitialConfigs = z.infer<typeof zInitialConfig>
 
 const createGitHubClients = (secret: string): UnifiedClients => {
   const parseSecret = zodParse(adapterSchema.secret, secret);
@@ -52,7 +46,7 @@ const createGitHubClients = (secret: string): UnifiedClients => {
 class GitHubAdapter {
   private _authInfo: AuthInfo
 
-  private _initialRepoInfo: RepoConfig
+  private _initialRepoInfo: RepoInput
 
   private _repoInfo?: RepoInfo
 
@@ -75,28 +69,18 @@ class GitHubAdapter {
     const fullPaths = buildFullPaths(paths);
     const tempClients = createGitHubClients(ownerSecret);
 
-    const repoApi = new RepositoryApi(
-      tempClients,
-      {
-        owner,
-        name,
-        paths: fullPaths,
-      } as RepoInfo,
-    );
-
-    await repoApi.init({ isPrivate: Boolean(createAsPrivate) });
-
-    const { defaultBranch } = await repoApi.getInfo();
-
-    this._repoInfo = {
-      defaultBranch,
+    const repoApi = new RepositoryApi(tempClients, {
       owner,
       name,
       paths: fullPaths,
-    };
+    });
+
+    await repoApi.init({ isPrivate: Boolean(createAsPrivate) });
+
+    this._repoInfo = await repoApi.getInfo();
   }
 
-  createGitApi = (args: CreateGitApiArgs): GitAdapterApi => {
+  createGitApi = (args: GitApiArgs): GitAdapterApi => {
     if (!this._repoInfo) throw new GitAdpaterError('Adapter not inialized');
 
     const parsedSecret = zodParse(adapterSchema.secret, args?.secret);
@@ -110,7 +94,7 @@ class GitHubAdapter {
     };
   }
 
-  static getAuthInfoFromRequest = (requestObj: { [key: string]: any }): CreateGitApiArgs => {
+  static getAuthInfoFromRequest = (requestObj: { [key: string]: any }): GitApiArgs => {
     if (typeof requestObj !== 'object' || requestObj[GitHubAdapter.AUTH_KEY_NAME]) {
       throw new GitAdpaterError('Unable to find auth info in request object');
     }

@@ -68,7 +68,6 @@ export type GitContext<GitApi = any> = {
   owner: string,
   repo: string,
   branch: string,
-  paths: RepoPaths
   api: GitApi
 }
 

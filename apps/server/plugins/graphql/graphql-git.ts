@@ -141,7 +141,6 @@ const graphqlGitPlugin: FastifyPluginCallback = async (
         owner,
         repo,
         branch: defaultBranch,
-        paths,
       },
       cms: {
         contentTypesList: types,
