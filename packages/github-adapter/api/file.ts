@@ -2,8 +2,6 @@ import get from 'lodash.get';
 import { z } from 'zod';
 
 import {
-  GitFileMode,
-  GitItemType,
   Tree,
   CreateSingleTreeItemArgs,
   UnifiedClients,
@@ -23,6 +21,7 @@ import {
 } from '../types';
 import { adapterSchema } from '../zodSchema';
 import { zodParse } from '../helpers';
+import { gitFileMode, gitItemType } from '../constants';
 
 const TYPENAME_BLOB = 'Blob'; // used to compare against GraphQL api responses
 
@@ -47,8 +46,8 @@ class FileApi implements FileApiInterface {
   }
 
   createSingleTreeItem = ({ path, blob: { sha } }: CreateSingleTreeItemArgs): Tree => ({
-    mode: GitFileMode.BLOB,
-    type: GitItemType.BLOB,
+    mode: gitFileMode.BLOB,
+    type: gitItemType.BLOB,
     path,
     sha,
   }) as Tree & { sha: string | null}

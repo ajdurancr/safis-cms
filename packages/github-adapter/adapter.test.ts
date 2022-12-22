@@ -11,6 +11,7 @@ import { buildFullPaths } from './helpers';
 import { FileContentTypesEnum, RepoPaths } from './types';
 import { GitAdpaterError, ValidationError } from './error';
 import { DEFAULT_REPO_DESCRIPTION } from './constants';
+import { expectToThrowHandler } from './testing.helpers';
 
 const DEFAULT_BRANCH = 'default-test-branch';
 const OWNER_SECRET = 'secret-1234';
@@ -117,46 +118,30 @@ describe('createGitHubClients', () => {
   });
 
   test('throws on secret = \'\'', () => {
-    expect(() => {
+    expectToThrowHandler(() => {
       createGitHubClients('');
-    }).toThrow(new ValidationError([
-      {
-        code: 'too_small',
-        minimum: 1,
-        type: 'string',
-        inclusive: true,
-        message: 'String must contain at least 1 character(s)',
-        path: [],
-      },
-    ]));
+    }, (error) => {
+      expect(error).toBeInstanceOf(ValidationError);
+      expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: String must contain at least 1 character(s)]');
+    });
   });
 
   test('throws on secret = undefined', () => {
-    expect(() => {
+    expectToThrowHandler(() => {
       createGitHubClients((undefined as any));
-    }).toThrow(new ValidationError([
-      {
-        code: 'invalid_type',
-        expected: 'string',
-        received: 'undefined',
-        path: [],
-        message: 'secret is required',
-      },
-    ]));
+    }, (error) => {
+      expect(error).toBeInstanceOf(ValidationError);
+      expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: Required]');
+    });
   });
 
   test('throws on secret = number', () => {
-    expect(() => {
+    expectToThrowHandler(() => {
       createGitHubClients((1234 as any));
-    }).toThrow(new ValidationError([
-      {
-        code: 'invalid_type',
-        expected: 'string',
-        received: 'number',
-        path: [],
-        message: 'secret must be a string',
-      },
-    ]));
+    }, (error) => {
+      expect(error).toBeInstanceOf(ValidationError);
+      expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: Expected string, received number]');
+    });
   });
 });
 
@@ -173,150 +158,71 @@ describe('GitHubAdapter', () => {
     });
 
     test('throws on config=undefined', () => {
-      expect(() => {
+      expectToThrowHandler(() => {
         const adapter = new GitHubAdapter((undefined as any));
-      }).toThrow(new ValidationError([
-        {
-          code: 'invalid_type',
-          expected: 'object',
-          received: 'undefined',
-          path: [],
-          message: 'initial config is required',
-        },
-      ]));
+      }, (error) => {
+        expect(error).toBeInstanceOf(ValidationError);
+        expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: Required]');
+      });
     });
 
     test('throws when config.auth values are invalid', () => {
-      expect(() => {
+      expectToThrowHandler(() => {
         const adapter = new GitHubAdapter({
           auth: ({} as any),
           repo: INITIAL_CONFIGS.repo,
         });
-      }).toThrow(new ValidationError([
-        {
-          code: 'invalid_type',
-          expected: 'string',
-          received: 'undefined',
-          path: [
-            'auth',
-            'ownerSecret',
-          ],
-          message: 'secret is required',
-        },
-      ]));
+      }, (error) => {
+        expect(error).toBeInstanceOf(ValidationError);
+        expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: Required at "auth.ownerSecret"]');
+      });
 
-      expect(() => {
+      expectToThrowHandler(() => {
         const adapter = new GitHubAdapter({
           auth: { ownerSecret: '' },
           repo: INITIAL_CONFIGS.repo,
         });
-      }).toThrow(new ValidationError([
-        {
-          code: 'too_small',
-          minimum: 1,
-          type: 'string',
-          inclusive: true,
-          message: 'String must contain at least 1 character(s)',
-          path: [
-            'auth',
-            'ownerSecret',
-          ],
-        },
-      ]));
+      }, (error) => {
+        expect(error).toBeInstanceOf(ValidationError);
+        expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: String must contain at least 1 character(s) at "auth.ownerSecret"]');
+      });
     });
 
     test('throws when config.repo values are invalid', () => {
-      expect(() => {
+      expectToThrowHandler(() => {
         const adapter = new GitHubAdapter({
           auth: INITIAL_CONFIGS.auth,
-          repo: {} as any,
+          repo: ({} as any),
         });
-      }).toThrow(new ValidationError([
-        {
-          code: 'invalid_type',
-          expected: 'string',
-          received: 'undefined',
-          path: [
-            'repo',
-            'name',
-          ],
-          message: 'Required',
-        },
-        {
-          code: 'invalid_type',
-          expected: 'string',
-          received: 'undefined',
-          path: [
-            'repo',
-            'owner',
-          ],
-          message: 'owner property is required',
-        },
-        {
-          code: 'invalid_type',
-          expected: 'object',
-          received: 'undefined',
-          path: [
-            'repo',
-            'paths',
-          ],
-          message: 'paths property is required',
-        },
-      ]));
+      }, (error) => {
+        expect(error).toBeInstanceOf(ValidationError);
+        expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: Required at "repo.name"; Required at "repo.owner"; Required at "repo.paths"]');
+      });
 
-      expect(() => {
+      expectToThrowHandler(() => {
         const adapter = new GitHubAdapter({
           auth: INITIAL_CONFIGS.auth,
           repo: {
             ...INITIAL_CONFIGS.repo,
-            paths: undefined as any,
+            paths: (undefined as any),
           },
         });
-      }).toThrow(new ValidationError([
-        {
-          code: 'invalid_type',
-          expected: 'object',
-          received: 'undefined',
-          path: [
-            'repo',
-            'paths',
-          ],
-          message: 'paths property is required',
-        },
-      ]));
-
-      expect(() => {
+      }, (error) => {
+        expect(error).toBeInstanceOf(ValidationError);
+        expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: Required at "repo.paths"]');
+      });
+      expectToThrowHandler(() => {
         const adapter = new GitHubAdapter({
           auth: { ownerSecret: OWNER_SECRET },
           repo: {
             ...INITIAL_CONFIGS.repo,
-            paths: {} as any,
+            paths: ({} as any),
           },
         });
-      }).toThrow(new ValidationError([
-        {
-          code: 'invalid_type',
-          expected: 'string',
-          received: 'undefined',
-          path: [
-            'repo',
-            'paths',
-            'content',
-          ],
-          message: 'content path is required',
-        },
-        {
-          code: 'invalid_type',
-          expected: 'string',
-          received: 'undefined',
-          path: [
-            'repo',
-            'paths',
-            'contentType',
-          ],
-          message: 'contentType path is required',
-        },
-      ]));
+      }, (error) => {
+        expect(error).toBeInstanceOf(ValidationError);
+        expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: Required at "repo.paths.content"; Required at "repo.paths.contentType"]');
+      });
     });
   });
 
@@ -451,30 +357,19 @@ describe('GitHubAdapter', () => {
 
       expect(RepositoryApi).toBeCalledTimes(1);
 
-      expect(() => {
-        adapter.createGitApi({ secret: undefined as any });
-      }).toThrow(new ValidationError([
-        {
-          code: 'invalid_type',
-          expected: 'string',
-          received: 'undefined',
-          path: [],
-          message: 'secret is required',
-        },
-      ]));
+      expectToThrowHandler(() => {
+        adapter.createGitApi({ secret: (undefined as any) });
+      }, (error) => {
+        expect(error).toBeInstanceOf(ValidationError);
+        expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: Required]');
+      });
 
-      expect(() => {
+      expectToThrowHandler(() => {
         adapter.createGitApi({ secret: '' });
-      }).toThrow(new ValidationError([
-        {
-          code: 'too_small',
-          minimum: 1,
-          type: 'string',
-          inclusive: true,
-          message: 'String must contain at least 1 character(s)',
-          path: [],
-        },
-      ]));
+      }, (error) => {
+        expect(error).toBeInstanceOf(ValidationError);
+        expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: String must contain at least 1 character(s)]');
+      });
 
       expect(ContentApi).not.toHaveBeenCalled();
       expect(ContentApi).not.toBeCalled();

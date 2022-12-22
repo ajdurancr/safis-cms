@@ -1,18 +1,9 @@
-import {
-  GetOAuthAccessTokenArgs,
-  GetOAuthLoginUrlArgs,
-} from '../types'
-
-import { RestClient } from '../client/rest'
+import { RestClient } from '../client/rest';
 
 class OAuthApi {
-  static getAccessToken =(args: GetOAuthAccessTokenArgs): Promise<string> => {
-    const { clientId, clientSecret, query } = args
+  static getAccessToken = RestClient.getOAuthAccessToken
 
-    return RestClient.getOAuthAccessToken({ clientId, clientSecret, query })
-  }
-
-  static getLoginUrl = (args: GetOAuthLoginUrlArgs): string => RestClient.getOAuthLoginUrl(args)
+  static getLoginUrl = RestClient.getOAuthLoginUrl
 }
 
-export { OAuthApi }
+export { OAuthApi };

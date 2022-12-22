@@ -1,5 +1,6 @@
 import { ValidationError } from './error';
 import { zodParse, buildFullPaths } from './helpers';
+import { expectToThrowHandler } from './testing.helpers';
 import { RepoPaths, RepoPathsEnum } from './types';
 import { adapterSchema } from './zodSchema';
 
@@ -21,25 +22,15 @@ describe('zodParse', () => {
   });
 
   test('fails parsing', () => {
-    try {
+    expectToThrowHandler(() => {
       zodParse(adapterSchema.repoPaths, {
         content: PATHS_INPUT.content,
         contentTypeInvalidKey: PATHS_INPUT.contentType,
       });
-    } catch (error) {
+    }, (error) => {
       expect(error).toBeInstanceOf(ValidationError);
-      expect((error as ValidationError).errors).toEqual([
-        {
-          code: 'invalid_type',
-          expected: 'string',
-          received: 'undefined',
-          path: [
-            'contentType',
-          ],
-          message: 'contentType path is required',
-        },
-      ]);
-    }
+      expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: Required at "contentType"]');
+    });
   });
 });
 
@@ -51,18 +42,26 @@ describe('buildFullPaths', () => {
   });
 
   test(`throws when ${RepoPathsEnum.CONTENT} and ${RepoPathsEnum.CONTENT_TYPE} are equal`, () => {
-    try {
+    expectToThrowHandler(() => {
       buildFullPaths({
         content: PATHS_INPUT.content,
         contentType: PATHS_INPUT.content,
       });
-    } catch (error) {
+    }, (error) => {
       expect(error).toBeInstanceOf(ValidationError);
-      expect((error as ValidationError).errors).toEqual([{
-        code: 'custom',
-        path: [],
-        message: 'contentType and content paths must be different',
-      }]);
-    }
+      expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: contentType and content paths must be different]');
+    });
+  });
+
+  test('throws when path starts with slash', () => {
+    expectToThrowHandler(() => {
+      buildFullPaths({
+        content: `/${PATHS_INPUT.content}`,
+        contentType: PATHS_INPUT.content,
+      });
+    }, (error) => {
+      expect(error).toBeInstanceOf(ValidationError);
+      expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: path cannot start with a slash at "content"]');
+    });
   });
 });

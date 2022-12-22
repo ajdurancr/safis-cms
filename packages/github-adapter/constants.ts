@@ -8,3 +8,15 @@ export const repoPathTransforms = {
   [FileContentTypesEnum.CONTENT]: RepoPathsEnum.CONTENT,
   [FileContentTypesEnum.CONTENT_TYPE]: RepoPathsEnum.CONTENT_TYPE,
 };
+
+export const gitFileMode = {
+  BLOB: '100644',
+  TREE: '040000',
+  COMMIT: '160000',
+} as const;
+
+export const gitItemType = {
+  BLOB: 'blob',
+  TREE: 'tree',
+  COMMIT: 'commit',
+} as const;

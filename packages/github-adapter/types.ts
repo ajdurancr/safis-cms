@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 
 import { z } from 'zod';
+
 import { adapterSchema } from './zodSchema';
 
 // Zod based types
@@ -14,30 +15,16 @@ export type RepoInfo = z.infer<typeof adapterSchema.repoInfo>
 export type GitApiArgs = z.infer<typeof adapterSchema.gitApiArgs>;
 
 // Git
+export type GitItemType = z.infer<typeof adapterSchema.gitItemType>;
 
-export enum GitItemType {
-  BLOB = 'blob',
-  TREE = 'tree',
-  COMMIT = 'commit',
-}
-
-export enum GitFileMode {
-  BLOB = '100644',
-  TREE = '040000',
-  COMMIT = '160000',
-}
+export type GitFileMode = z.infer<typeof adapterSchema.gitFileMode>;
 
 export type Blob = {
   url?: string,
   sha: string | null,
 }
 
-export type Tree = {
-  mode: GitFileMode,
-  type: GitItemType,
-  path: string,
-  sha: string,
-}
+export type Tree = z.infer<typeof adapterSchema.tree>
 
 // GitHub
 
@@ -77,11 +64,7 @@ export type GitHubRepository = {
 
 // AdapterRestClient arguments
 
-export type CreateBlobArgs = {
-  owner: string,
-  repo: string,
-  content: string,
-}
+export type CreateBlobArgs = z.infer<typeof adapterSchema.createBlobArgs>
 
 export type CreateCommitArgs = {
   owner: string,
@@ -91,12 +74,7 @@ export type CreateCommitArgs = {
   parents: string[],
 }
 
-export type CreateTreeArgs = {
-  owner: string,
-  repo: string,
-  treeItems: Tree[],
-  baseTree: string,
-}
+export type CreateTreeArgs = z.infer<typeof adapterSchema.createTreeArgs>;
 
 export type CreateRefArgs = {
   owner: string,
@@ -109,16 +87,6 @@ export type CreateRepoArgs = {
   name: string,
   description?: string,
   isPrivate: boolean,
-}
-
-export type GetOAuthAccessTokenArgs = {
-  clientId: string,
-  clientSecret: string,
-  query: { code: string },
-}
-export type GetOAuthLoginUrlArgs = {
-  clientId: string,
-  scope: string[],
 }
 
 export type UpdateRefArgs = CreateRefArgs & {

@@ -1,4 +1,5 @@
 import { ParseParams, z } from 'zod';
+import { fromZodError } from 'zod-validation-error';
 
 import { RepoPathsEnum, RepoPaths } from './types';
 import { ValidationError } from './error';
@@ -12,7 +13,9 @@ const zodParse = <T extends z.ZodTypeAny>(
   const parsedConfigResult = schema.safeParse(parseInput, parseParams);
 
   if (!parsedConfigResult.success) {
-    throw new ValidationError(parsedConfigResult.error.errors);
+    // formats error to a user-friendly readable message
+    const formattedError = fromZodError(parsedConfigResult.error);
+    throw new ValidationError(formattedError);
   }
 
   return parsedConfigResult.data;

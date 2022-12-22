@@ -1,6 +1,9 @@
 import { Octokit } from '@octokit/core';
+import { z } from 'zod';
 
 import { DEFAULT_REPO_DESCRIPTION } from '../constants';
+import { GitHubClientError } from '../error';
+import { zodParse } from '../helpers';
 import {
   RestClientInterface,
   AuthenticatedUser,
@@ -13,12 +16,27 @@ import {
   CreateTreeArgs,
   CreateTreeResponse,
   CreateUpdateRefResponse,
-  GetOAuthAccessTokenArgs,
-  GetOAuthLoginUrlArgs,
   GitHubRepository,
   GitHubRestClient,
   UpdateRefArgs,
+  GitFileMode,
 } from '../types';
+import { adapterSchema } from '../zodSchema';
+
+const zClientId = z.string().min(1);
+const zGetOAuthAccessTokenArgs = z.object({
+  clientId: zClientId,
+  clientSecret: z.string().min(1),
+  oauthCallbackCode: z.string().min(1),
+});
+
+const zGetOAuthLoginUrlArgs = z.object({
+  clientId: zClientId,
+  scope: z.array(z.string().min(1)),
+});
+
+type GetOAuthAccessTokenArgs = z.infer<typeof zGetOAuthAccessTokenArgs>
+type GetOAuthLoginUrlArgs = z.infer<typeof zGetOAuthLoginUrlArgs>
 
 class RestClient implements RestClientInterface {
   protected client: GitHubRestClient
@@ -27,9 +45,12 @@ class RestClient implements RestClientInterface {
     this.client = client;
   }
 
-  static getOAuthAccessToken = (args: GetOAuthAccessTokenArgs): Promise<string> => {
-    const { clientId, clientSecret, query } = args;
-    const { code } = query || {};
+  static getOAuthAccessToken = async (args: GetOAuthAccessTokenArgs): Promise<string> => {
+    const {
+      clientId,
+      clientSecret,
+      oauthCallbackCode: code,
+    } = zodParse(zGetOAuthAccessTokenArgs, args);
 
     return new Octokit().request(
       'POST https://github.com/login/oauth/access_token',
@@ -43,20 +64,41 @@ class RestClient implements RestClientInterface {
         const { access_token: accessToken } = data || {};
 
         return accessToken;
+      })
+      // eslint-disable-next-line camelcase
+      .catch((res: { error: string, error_description: string, status: number }) => {
+        const { error: errorCode, error_description: errorDescription, status } = res;
+        // eslint-disable-next-line camelcase
+        const error = errorCode === 'Not Found'
+          ? 'The client_id and/or client_secret passed are incorrect.'
+          : errorDescription || errorCode;
+
+        throw new GitHubClientError('Unable to get oauth access token', {
+          message: error,
+          statusCode: status,
+        });
       });
   }
 
-  static getOAuthLoginUrl = ({ clientId, scope }: GetOAuthLoginUrlArgs): string => {
+  static getOAuthLoginUrl = (args: GetOAuthLoginUrlArgs): string => {
+    const { clientId, scope } = zodParse(zGetOAuthLoginUrlArgs, args);
+
     const scopeParamString = scope && scope.length ? `&scope=${scope.join(',')}` : '';
 
     return `https://github.com/login/oauth/authorize?client_id=${clientId}${scopeParamString}`;
   }
 
-  createBlob = async ({ owner, repo, content }: CreateBlobArgs) : Promise<Blob> => {
+  createBlob = async (args: CreateBlobArgs) : Promise<Blob> => {
+    const { owner, repo, content } = zodParse(adapterSchema.createBlobArgs, args);
     const { data: blob }: { data: Blob } = await this.client('POST /repos/{owner}/{repo}/git/blobs', {
       owner,
       repo,
       content,
+    }).catch(({ data, status }: any) => {
+      throw new GitHubClientError('Unable to create Blob', {
+        message: data.message,
+        statusCode: status,
+      });
     });
 
     return blob;
@@ -122,13 +164,18 @@ class RestClient implements RestClientInterface {
       repo,
       treeItems,
       baseTree,
-    } = args;
+    } = zodParse(adapterSchema.createTreeArgs, args);
 
-    const { data: newTree }: { data: CreateTreeResponse } = await this.client(`POST /repos/${owner}/${repo}/git/trees`, {
+    const { data: newTree }: { data: CreateTreeResponse } = await this.client('POST /repos/{owner}/{repo}/git/trees', {
       owner,
       repo,
       base_tree: baseTree,
       tree: treeItems,
+    }).catch(({ data, status }: any) => {
+      throw new GitHubClientError('Unable to create Blob', {
+        message: data.message,
+        statusCode: status,
+      });
     });
 
     return newTree;

@@ -25,7 +25,7 @@ const zAuthInfo = z.object({ ownerSecret: adapterSchema.secret });
 const zInitialConfig = z.object({
   auth: zAuthInfo,
   repo: adapterSchema.repoInput,
-}, { required_error: 'initial config is required' });
+});
 
 type InitialConfigs = z.infer<typeof zInitialConfig>
 
