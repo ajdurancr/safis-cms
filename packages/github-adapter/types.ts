@@ -66,13 +66,7 @@ export type GitHubRepository = {
 
 export type CreateBlobArgs = z.infer<typeof adapterSchema.createBlobArgs>
 
-export type CreateCommitArgs = {
-  owner: string,
-  repo: string,
-  message: string,
-  tree: string,
-  parents: string[],
-}
+export type CreateCommitArgs = z.infer<typeof adapterSchema.createCommitArgs>
 
 export type CreateTreeArgs = z.infer<typeof adapterSchema.createTreeArgs>;
 

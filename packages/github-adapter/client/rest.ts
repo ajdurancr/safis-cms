@@ -2,7 +2,7 @@ import { Octokit } from '@octokit/core';
 import { z } from 'zod';
 
 import { DEFAULT_REPO_DESCRIPTION } from '../constants';
-import { GitHubClientError } from '../error';
+import { GitHubClientError, ClientErrorData } from '../error';
 import { zodParse } from '../helpers';
 import {
   RestClientInterface,
@@ -19,7 +19,6 @@ import {
   GitHubRepository,
   GitHubRestClient,
   UpdateRefArgs,
-  GitFileMode,
 } from '../types';
 import { adapterSchema } from '../zodSchema';
 
@@ -37,6 +36,20 @@ const zGetOAuthLoginUrlArgs = z.object({
 
 type GetOAuthAccessTokenArgs = z.infer<typeof zGetOAuthAccessTokenArgs>
 type GetOAuthLoginUrlArgs = z.infer<typeof zGetOAuthLoginUrlArgs>
+
+const createErrorData = (errorResponse: any): ClientErrorData => ({
+  message: errorResponse?.data?.message || 'Error',
+  statusCode: errorResponse.status,
+});
+
+const createErrorHandler = (
+  errorDescription: string,
+  createErrordDataFn: typeof createErrorData = createErrorData,
+) => (errorResponse: any) => {
+  const errorData = createErrordDataFn(errorResponse);
+
+  throw new GitHubClientError(errorDescription, errorData);
+};
 
 class RestClient implements RestClientInterface {
   protected client: GitHubRestClient
@@ -65,19 +78,17 @@ class RestClient implements RestClientInterface {
 
         return accessToken;
       })
-      // eslint-disable-next-line camelcase
-      .catch((res: { error: string, error_description: string, status: number }) => {
-        const { error: errorCode, error_description: errorDescription, status } = res;
+      .catch(createErrorHandler('Unable to get oauth access token', (errorResponse: any) => {
         // eslint-disable-next-line camelcase
-        const error = errorCode === 'Not Found'
+        const error = errorResponse.error === 'Not Found'
           ? 'The client_id and/or client_secret passed are incorrect.'
-          : errorDescription || errorCode;
+          : errorResponse.error_description || errorResponse.error;
 
-        throw new GitHubClientError('Unable to get oauth access token', {
+        return {
           message: error,
-          statusCode: status,
-        });
-      });
+          statusCode: errorResponse.status,
+        };
+      }));
   }
 
   static getOAuthLoginUrl = (args: GetOAuthLoginUrlArgs): string => {
@@ -94,12 +105,7 @@ class RestClient implements RestClientInterface {
       owner,
       repo,
       content,
-    }).catch(({ data, status }: any) => {
-      throw new GitHubClientError('Unable to create Blob', {
-        message: data.message,
-        statusCode: status,
-      });
-    });
+    }).catch(createErrorHandler('Unable to create Blob'));
 
     return blob;
   }
@@ -111,15 +117,15 @@ class RestClient implements RestClientInterface {
       message,
       tree,
       parents,
-    } = args;
+    } = zodParse(adapterSchema.createCommitArgs, args);
 
-    const { data: commit } = await this.client(`POST /repos/${owner}/${repo}/git/commits`, {
+    const { data: commit } = await this.client('POST /repos/{owner}/{repo}/git/commits', {
       owner,
       repo,
       message,
       tree,
       parents,
-    });
+    }).catch(createErrorHandler('Unable to create Commit'));
 
     return commit;
   }
@@ -171,12 +177,7 @@ class RestClient implements RestClientInterface {
       repo,
       base_tree: baseTree,
       tree: treeItems,
-    }).catch(({ data, status }: any) => {
-      throw new GitHubClientError('Unable to create Blob', {
-        message: data.message,
-        statusCode: status,
-      });
-    });
+    }).catch(createErrorHandler('Unable to create Tree'));
 
     return newTree;
   }

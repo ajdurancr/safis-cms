@@ -2,6 +2,7 @@
 
 import { gitFileMode, gitItemType } from '../constants';
 import { GitHubClientError, ValidationError } from '../error';
+import { Commit } from '../types';
 import { RestClient } from './rest';
 
 const octokitRequest = jest.fn().mockResolvedValue({});
@@ -20,6 +21,8 @@ const OAUTH_CLIENT_ID = 'test-client-id';
 const OAUTH_CLIENT_SECRET = 'test-client-secret';
 
 const BLOB_SHA = '08cf6101416f0ce0dda3c80e627f333854c4085c';
+const NEW_TREE_SHA = 'de48c58709eaf7f54f4dbc47726bf4640438a556';
+const BASE_TREE_SHA = '4d48c58709eaf7f54f4dbc47726bf4640438a534';
 
 describe('RestClient', () => {
   afterEach(() => {
@@ -203,7 +206,7 @@ describe('RestClient', () => {
       const INVALID_REPO = 'invalid-repo-name';
       const errorResponse = {
         status: 404,
-        data: { message: { message: 'Not Found' } },
+        data: { message: 'Not Found' },
       };
 
       ghRestClient.mockRejectedValue(errorResponse);
@@ -214,6 +217,7 @@ describe('RestClient', () => {
         content,
       }).catch((error) => {
         expect(error).toBeInstanceOf(GitHubClientError);
+        expect(error).toMatchInlineSnapshot('[GitAdpaterError: Unable to create Blob: Not Found]');
         expect(error.error).toEqual({
           message: errorResponse.data.message,
           statusCode: errorResponse.status,
@@ -232,6 +236,7 @@ describe('RestClient', () => {
         content,
       }).catch((error) => {
         expect(error).toBeInstanceOf(GitHubClientError);
+        expect(error).toMatchInlineSnapshot('[GitAdpaterError: Unable to create Blob: Not Found]');
         expect(error.error).toEqual({
           message: errorResponse.data.message,
           statusCode: errorResponse.status,
@@ -275,8 +280,6 @@ describe('RestClient', () => {
   });
 
   describe('createTree', () => {
-    const NEW_TREE_SHA = 'de48c58709eaf7f54f4dbc47726bf4640438a556';
-    const BASE_TREE_SHA = 'base-tree-sha';
     const BLOB_PATH = 'blob-path';
     const TREE_ITEMS = [{
       mode: gitFileMode.BLOB,
@@ -298,20 +301,11 @@ describe('RestClient', () => {
     });
 
     test('creates tree correctly', async () => {
-      const baseTreeSha = 'base-tree-sha';
-      const blobPath = 'blob-path';
-      const treeItems = [{
-        mode: gitFileMode.BLOB,
-        type: gitItemType.BLOB,
-        path: blobPath,
-        sha: BLOB_SHA,
-      }];
-
       const createTreeRespose = {
         data: {
           sha: NEW_TREE_SHA,
           url: 'tree-url',
-          tree: treeItems,
+          tree: TREE_ITEMS,
           truncated: false,
         },
       };
@@ -323,8 +317,8 @@ describe('RestClient', () => {
       expect(ghRestClient).toBeCalledWith('POST /repos/{owner}/{repo}/git/trees', {
         owner: REPO_OWNER,
         repo: REPO_NAME,
-        base_tree: baseTreeSha,
-        tree: treeItems,
+        base_tree: BASE_TREE_SHA,
+        tree: TREE_ITEMS,
       });
 
       expect(newTree).toEqual(createTreeRespose.data);
@@ -335,7 +329,7 @@ describe('RestClient', () => {
       const INVALID_REPO = 'invalid-repo-name';
       const errorResponse = {
         status: 404,
-        data: { message: { message: 'Not Found' } },
+        data: { message: 'Not Found' },
       };
 
       ghRestClient.mockRejectedValue(errorResponse);
@@ -345,6 +339,7 @@ describe('RestClient', () => {
         owner: INVALID_OWNER,
       }).catch((error) => {
         expect(error).toBeInstanceOf(GitHubClientError);
+        expect(error).toMatchInlineSnapshot('[GitAdpaterError: Unable to create Tree: Not Found]');
         expect(error.error).toEqual({
           message: errorResponse.data.message,
           statusCode: errorResponse.status,
@@ -367,6 +362,7 @@ describe('RestClient', () => {
         repo: INVALID_REPO,
       }).catch((error) => {
         expect(error).toBeInstanceOf(GitHubClientError);
+        expect(error).toMatchInlineSnapshot('[GitAdpaterError: Unable to create Tree: Not Found]');
         expect(error.error).toEqual({
           message: errorResponse.data.message,
           statusCode: errorResponse.status,
@@ -393,7 +389,7 @@ describe('RestClient', () => {
         treeItems: [] as any[],
       }).catch((error) => {
         expect(error).toBeInstanceOf(ValidationError);
-        expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: Required at "owner"; Expected string, received number at "repo"; Array must contain at least 1 element(s) at "treeItems"; String must contain at least 1 character(s) at "baseTree"]');
+        expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: Required at "owner"; Expected string, received number at "repo"; Array must contain at least 1 element(s) at "treeItems"; String must contain at least 40 character(s) at "baseTree"; sha must be exactly 40 characters and contain only [0-9a-f] at "baseTree"]');
       });
 
       await restClient.createTree({
@@ -407,6 +403,123 @@ describe('RestClient', () => {
       }).catch((error) => {
         expect(error).toBeInstanceOf(ValidationError);
         expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: Invalid enum value. Expected \'100644\' | \'040000\' | \'160000\', received \'1006442\' at "treeItems[0].mode"; Invalid enum value. Expected \'blob\' | \'tree\' | \'commit\', received \'blobXYZ\' at "treeItems[0].type"; path cannot start with a slash at "treeItems[0].path"; Expected string, received null at "treeItems[0].sha"]');
+      });
+    });
+  });
+
+  describe('createCommit', () => {
+    const CREATE_COMMIT_ARGS = {
+      repo: REPO_NAME,
+      owner: REPO_OWNER,
+      tree: NEW_TREE_SHA,
+      parents: [],
+      message: 'Test commit',
+    };
+
+    let restClient: RestClient;
+    beforeEach(() => {
+      restClient = new RestClient(ghRestClient);
+    });
+
+    test('creates commit correctly', async () => {
+      const newCommit: Commit = {
+        sha: 'a27f588e11d3d05720c5fc1222e869ed534fb671',
+        author: {
+          name: 'John Doe',
+          email: 'test@email.com',
+          date: '2022-12-23T15:34:38Z',
+        },
+        committer: {
+          name: 'John Doe',
+          email: 'test@email.com',
+          date: '2022-12-23T15:34:38Z',
+        },
+        tree: {
+          sha: NEW_TREE_SHA,
+          url: 'test-url',
+        },
+        message: 'This is a test commit - from Postman',
+        parents: [],
+      };
+
+      const createCommitResponse = { data: newCommit };
+
+      ghRestClient.mockResolvedValueOnce(createCommitResponse);
+
+      const newTree = await restClient.createCommit(CREATE_COMMIT_ARGS);
+
+      expect(ghRestClient).toBeCalledWith('POST /repos/{owner}/{repo}/git/commits', CREATE_COMMIT_ARGS);
+
+      expect(newTree).toEqual(newCommit);
+    });
+
+    test('throws when tree SHA does not exist', async () => {
+      const invalidTreeShaArgs = {
+        ...CREATE_COMMIT_ARGS,
+        tree: '08cf6101416f0ce0dda3c80e627f333854c40efd', // non-existing sha
+      };
+      const invalidTreeShaResponse = {
+        status: 422,
+        data: { message: 'Tree SHA does not exist' },
+      };
+
+      ghRestClient.mockRejectedValueOnce(invalidTreeShaResponse);
+
+      await restClient.createCommit(invalidTreeShaArgs).catch((invalidShaError) => {
+        expect(ghRestClient).toBeCalledWith('POST /repos/{owner}/{repo}/git/commits', invalidTreeShaArgs);
+
+        expect(invalidShaError).toBeInstanceOf(GitHubClientError);
+        expect(invalidShaError.error).toEqual({
+          message: invalidTreeShaResponse.data.message,
+          statusCode: invalidTreeShaResponse.status,
+        });
+        expect(invalidShaError).toMatchInlineSnapshot('[GitAdpaterError: Unable to create Commit: Tree SHA does not exist]');
+      });
+    });
+
+    test('throws when parent SHA does not exist', async () => {
+      const invalidParentShaArgs = {
+        ...CREATE_COMMIT_ARGS,
+        parents: [
+          '08cf6101416f0ce0dda3c80e627f333854c40efd', // non-existing sha
+        ],
+      };
+      const invalidParentShaResponse = {
+        status: 422,
+        data: { message: 'Parent SHA does not exist or is not a commit object' },
+      };
+
+      ghRestClient.mockRejectedValueOnce(invalidParentShaResponse);
+
+      await restClient.createCommit(invalidParentShaArgs).catch((invalidShaError) => {
+        expect(ghRestClient).toBeCalledWith('POST /repos/{owner}/{repo}/git/commits', invalidParentShaArgs);
+
+        expect(invalidShaError).toBeInstanceOf(GitHubClientError);
+        expect(invalidShaError.error).toEqual({
+          message: invalidParentShaResponse.data.message,
+          statusCode: invalidParentShaResponse.status,
+        });
+        expect(invalidShaError).toMatchInlineSnapshot('[GitAdpaterError: Unable to create Commit: Parent SHA does not exist or is not a commit object]');
+      });
+    });
+
+    test('throws when arguments are invalid', async () => {
+      await restClient.createCommit({
+        ...CREATE_COMMIT_ARGS,
+        message: undefined as any,
+        parents: undefined as any,
+      }).catch((error) => {
+        expect(error).toBeInstanceOf(ValidationError);
+        expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: Required at "message"; Required at "parents"]');
+      });
+
+      await restClient.createCommit({
+        ...CREATE_COMMIT_ARGS,
+        tree: 'invalid-sha',
+        parents: ['another-wrong-sha'],
+      }).catch((error) => {
+        expect(error).toBeInstanceOf(ValidationError);
+        expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: String must contain at least 40 character(s) at "tree"; sha must be exactly 40 characters and contain only [0-9a-f] at "tree"; String must contain at least 40 character(s) at "parents[0]"; sha must be exactly 40 characters and contain only [0-9a-f] at "parents[0]"]');
       });
     });
   });

@@ -37,12 +37,12 @@ class ValidationError extends GitAdpaterError {
   }
 }
 
-type GHClientErrorObj = { message: string, statusCode: number}
+export type ClientErrorData = { message: string, statusCode: number}
 
 class GitHubClientError extends GitAdpaterError {
-  error: GHClientErrorObj
+  error: ClientErrorData
 
-  constructor(description: string, error: GHClientErrorObj) {
+  constructor(description: string, error: ClientErrorData) {
     super(description);
 
     this.error = error;

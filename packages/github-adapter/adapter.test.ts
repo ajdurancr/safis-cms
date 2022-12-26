@@ -338,7 +338,7 @@ describe('GitHubAdapter', () => {
     test('throws when adapter was not initialized correctly', async () => {
       const adapter = new GitHubAdapter(INITIAL_CONFIGS);
 
-      // await adapter.init(); /* call should had been done here */
+      // await adapter.init(); /* call should have been done here */
 
       expect(() => {
         adapter.createGitApi({ secret: OWNER_SECRET });

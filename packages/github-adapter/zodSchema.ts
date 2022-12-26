@@ -7,7 +7,7 @@ import { RepoPathsEnum } from './types';
 
 /* github-specific */
 const blobContent = z.string().min(1);
-const sha = z.string().min(1);
+const sha = z.string().length(40).regex(/^[0-9a-f]{40}$/, 'sha must be exactly 40 characters and contain only [0-9a-f]');
 const gitItemType = z.nativeEnum(gitItemTypeMap);
 const gitFileMode = z.nativeEnum(gitFileModeMap);
 const path = z.string().min(1).refine(
@@ -64,6 +64,13 @@ const createTreeArgs = z.object({
   treeItems: z.array(tree).min(1),
   baseTree: sha,
 });
+const createCommitArgs = z.object({
+  owner: repoOwner,
+  repo: repoName,
+  message: z.string().min(1),
+  tree: sha,
+  parents: z.array(sha),
+});
 
 export const adapterSchema = {
   repoName,
@@ -79,6 +86,7 @@ export const adapterSchema = {
   // function arguments
   gitApiArgs,
   createBlobArgs,
+  createCommitArgs,
   createTreeArgs,
 
   // github specifics
