@@ -6,8 +6,18 @@ import {
 import { RepoPathsEnum } from './types';
 
 /* github-specific */
+const refMinimumComponents = 3;
 const blobContent = z.string().min(1);
 const sha = z.string().length(40).regex(/^[0-9a-f]{40}$/, 'sha must be exactly 40 characters and contain only [0-9a-f]');
+const repoRef = z.string()
+  .refine(
+    (ref) => ref.startsWith('refs/heads/') || ref.startsWith('refs/tags/'),
+    { message: 'Reference must start with `refs/heads/` or `refs/tags`' },
+  )
+  .refine(
+    (ref) => ref.split('/').filter(Boolean).length >= refMinimumComponents,
+    { message: 'Reference name must contain at least three slash-separated components' },
+  );
 const gitItemType = z.nativeEnum(gitItemTypeMap);
 const gitFileMode = z.nativeEnum(gitFileModeMap);
 const path = z.string().min(1).refine(
@@ -71,6 +81,12 @@ const createCommitArgs = z.object({
   tree: sha,
   parents: z.array(sha),
 });
+const createRefArgs = z.object({
+  owner: repoOwner,
+  repo: repoName,
+  ref: repoRef,
+  sha,
+});
 
 export const adapterSchema = {
   repoName,
@@ -87,6 +103,7 @@ export const adapterSchema = {
   gitApiArgs,
   createBlobArgs,
   createCommitArgs,
+  createRefArgs,
   createTreeArgs,
 
   // github specifics

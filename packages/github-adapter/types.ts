@@ -70,12 +70,7 @@ export type CreateCommitArgs = z.infer<typeof adapterSchema.createCommitArgs>
 
 export type CreateTreeArgs = z.infer<typeof adapterSchema.createTreeArgs>;
 
-export type CreateRefArgs = {
-  owner: string,
-  repo: string,
-  ref: string,
-  sha: string,
-}
+export type CreateRefArgs = z.infer<typeof adapterSchema.createRefArgs>;
 
 export type CreateRepoArgs = {
   name: string,

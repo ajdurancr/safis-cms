@@ -2,7 +2,6 @@
 
 import { gitFileMode, gitItemType } from '../constants';
 import { GitHubClientError, ValidationError } from '../error';
-import { Commit } from '../types';
 import { RestClient } from './rest';
 
 const octokitRequest = jest.fn().mockResolvedValue({});
@@ -76,6 +75,8 @@ describe('RestClient', () => {
         expect(error).toBeInstanceOf(ValidationError);
         expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: Required at "clientId"; Expected string, received number at "clientSecret"; Expected string, received null at "oauthCallbackCode"]');
       });
+
+      expect(ghRestClient).not.toHaveBeenCalled();
     });
 
     test('throws when client_id is invalid', async () => {
@@ -276,6 +277,8 @@ describe('RestClient', () => {
         expect(error).toBeInstanceOf(ValidationError);
         expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: Expected string, received number at "content"]');
       });
+
+      expect(ghRestClient).not.toHaveBeenCalled();
     });
   });
 
@@ -404,6 +407,8 @@ describe('RestClient', () => {
         expect(error).toBeInstanceOf(ValidationError);
         expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: Invalid enum value. Expected \'100644\' | \'040000\' | \'160000\', received \'1006442\' at "treeItems[0].mode"; Invalid enum value. Expected \'blob\' | \'tree\' | \'commit\', received \'blobXYZ\' at "treeItems[0].type"; path cannot start with a slash at "treeItems[0].path"; Expected string, received null at "treeItems[0].sha"]');
       });
+
+      expect(ghRestClient).not.toHaveBeenCalled();
     });
   });
 
@@ -422,7 +427,7 @@ describe('RestClient', () => {
     });
 
     test('creates commit correctly', async () => {
-      const newCommit: Commit = {
+      const newCommit = {
         sha: 'a27f588e11d3d05720c5fc1222e869ed534fb671',
         author: {
           name: 'John Doe',
@@ -436,7 +441,7 @@ describe('RestClient', () => {
         },
         tree: {
           sha: NEW_TREE_SHA,
-          url: 'test-url',
+          url: 'http://test-url.com',
         },
         message: 'This is a test commit - from Postman',
         parents: [],
@@ -466,8 +471,6 @@ describe('RestClient', () => {
       ghRestClient.mockRejectedValueOnce(invalidTreeShaResponse);
 
       await restClient.createCommit(invalidTreeShaArgs).catch((invalidShaError) => {
-        expect(ghRestClient).toBeCalledWith('POST /repos/{owner}/{repo}/git/commits', invalidTreeShaArgs);
-
         expect(invalidShaError).toBeInstanceOf(GitHubClientError);
         expect(invalidShaError.error).toEqual({
           message: invalidTreeShaResponse.data.message,
@@ -475,6 +478,7 @@ describe('RestClient', () => {
         });
         expect(invalidShaError).toMatchInlineSnapshot('[GitAdpaterError: Unable to create Commit: Tree SHA does not exist]');
       });
+      expect(ghRestClient).toBeCalledWith('POST /repos/{owner}/{repo}/git/commits', invalidTreeShaArgs);
     });
 
     test('throws when parent SHA does not exist', async () => {
@@ -492,8 +496,6 @@ describe('RestClient', () => {
       ghRestClient.mockRejectedValueOnce(invalidParentShaResponse);
 
       await restClient.createCommit(invalidParentShaArgs).catch((invalidShaError) => {
-        expect(ghRestClient).toBeCalledWith('POST /repos/{owner}/{repo}/git/commits', invalidParentShaArgs);
-
         expect(invalidShaError).toBeInstanceOf(GitHubClientError);
         expect(invalidShaError.error).toEqual({
           message: invalidParentShaResponse.data.message,
@@ -501,6 +503,7 @@ describe('RestClient', () => {
         });
         expect(invalidShaError).toMatchInlineSnapshot('[GitAdpaterError: Unable to create Commit: Parent SHA does not exist or is not a commit object]');
       });
+      expect(ghRestClient).toBeCalledWith('POST /repos/{owner}/{repo}/git/commits', invalidParentShaArgs);
     });
 
     test('throws when arguments are invalid', async () => {
@@ -521,6 +524,142 @@ describe('RestClient', () => {
         expect(error).toBeInstanceOf(ValidationError);
         expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: String must contain at least 40 character(s) at "tree"; sha must be exactly 40 characters and contain only [0-9a-f] at "tree"; String must contain at least 40 character(s) at "parents[0]"; sha must be exactly 40 characters and contain only [0-9a-f] at "parents[0]"]');
       });
+
+      expect(ghRestClient).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('createRef', () => {
+    const commitSha = 'a27f588e11d3d05720c5fc1222e869ed534fb671';
+    const CREATE_REF_ARGS = {
+      owner: REPO_OWNER,
+      repo: REPO_NAME,
+      ref: 'refs/heads/test',
+      sha: commitSha,
+    };
+
+    let restClient: RestClient;
+    beforeEach(() => {
+      restClient = new RestClient(ghRestClient);
+    });
+
+    test('creates ref correctly', async () => {
+      const newRefData = {
+        ref: 'refs/heads/test',
+        url: 'http://test-url.com',
+        object: {
+          sha: commitSha,
+          type: 'commit',
+          url: 'http://test-url.com',
+        },
+      };
+      const createRefResponse = { data: newRefData };
+
+      ghRestClient.mockResolvedValueOnce(createRefResponse);
+
+      const newRef = await restClient.createRef(CREATE_REF_ARGS);
+
+      expect(ghRestClient).toBeCalledWith('POST /repos/{owner}/{repo}/git/refs', CREATE_REF_ARGS);
+
+      expect(newRef).toEqual(newRefData);
+    });
+
+    test('throws when args are invalid', async () => {
+      const invalidArgs = {
+        owner: '',
+        repo: undefined as any,
+        sha: 'XXcf6101416f0ce0dda3c80e627f333854c4085c',
+        ref: 'refs/heads/',
+      };
+
+      await restClient.createRef(invalidArgs)
+        .catch((validationError) => {
+          expect(validationError).toBeInstanceOf(ValidationError);
+          expect(validationError).toMatchInlineSnapshot('[GitAdpaterError: Validation error: String must contain at least 1 character(s) at "owner"; Required at "repo"; Reference name must contain at least three slash-separated components at "ref"; sha must be exactly 40 characters and contain only [0-9a-f] at "sha"]');
+        });
+
+      await restClient.createRef({
+        ...CREATE_REF_ARGS,
+        ref: 'refs/heads//',
+      })
+        .catch((validationError) => {
+          expect(validationError).toBeInstanceOf(ValidationError);
+          expect(validationError).toMatchInlineSnapshot('[GitAdpaterError: Validation error: Reference name must contain at least three slash-separated components at "ref"]');
+        });
+
+      expect(ghRestClient).not.toHaveBeenCalled();
+    });
+
+    test('throws when ref already exists', async () => {
+      const createRefErrorResponse = {
+        status: 422,
+        data: { message: 'Reference already exists' },
+      };
+
+      ghRestClient.mockRejectedValueOnce(createRefErrorResponse);
+
+      await restClient.createRef(CREATE_REF_ARGS)
+        .catch((existingRefError) => {
+          expect(existingRefError).toBeInstanceOf(GitHubClientError);
+          expect(existingRefError.error).toEqual({
+            message: createRefErrorResponse.data.message,
+            statusCode: createRefErrorResponse.status,
+          });
+          expect(existingRefError).toMatchInlineSnapshot('[GitAdpaterError: Unable to create Ref: Reference already exists]');
+        });
+
+      expect(ghRestClient).toBeCalledWith('POST /repos/{owner}/{repo}/git/refs', CREATE_REF_ARGS);
+    });
+
+    test('throws when object (sha) does not exist', async () => {
+      const invalidArgs = {
+        ...CREATE_REF_ARGS,
+        sha: 'a27f588e11d3d05720c5fc1222e869ed534fb689', // non-existing object
+      };
+      const createRefErrorResponse = {
+        status: 422,
+        data: { message: 'Object does not exist' },
+      };
+
+      ghRestClient.mockRejectedValueOnce(createRefErrorResponse);
+
+      await restClient.createRef(invalidArgs)
+        .catch((nonExistingObjError) => {
+          expect(nonExistingObjError).toBeInstanceOf(GitHubClientError);
+          expect(nonExistingObjError.error).toEqual({
+            message: createRefErrorResponse.data.message,
+            statusCode: createRefErrorResponse.status,
+          });
+          expect(nonExistingObjError).toMatchInlineSnapshot('[GitAdpaterError: Unable to create Ref: Object does not exist]');
+        });
+
+      expect(ghRestClient).toBeCalledWith('POST /repos/{owner}/{repo}/git/refs', invalidArgs);
+    });
+
+    test('throws when ref is not a valid name', async () => {
+      const invalidRefName = 'refs/heads/test/';
+      const invalidArgs = {
+        ...CREATE_REF_ARGS,
+        ref: invalidRefName,
+      };
+      const createRefErrorResponse = {
+        status: 422,
+        data: { message: `${invalidRefName} is not a valid ref name.` },
+      };
+
+      ghRestClient.mockRejectedValueOnce(createRefErrorResponse);
+
+      await restClient.createRef(invalidArgs)
+        .catch((invalidRefNameError) => {
+          expect(invalidRefNameError).toBeInstanceOf(GitHubClientError);
+          expect(invalidRefNameError.error).toEqual({
+            message: createRefErrorResponse.data.message,
+            statusCode: createRefErrorResponse.status,
+          });
+          expect(invalidRefNameError).toMatchInlineSnapshot('[GitAdpaterError: Unable to create Ref: refs/heads/test/ is not a valid ref name.]');
+        });
+
+      expect(ghRestClient).toBeCalledWith('POST /repos/{owner}/{repo}/git/refs', invalidArgs);
     });
   });
 });

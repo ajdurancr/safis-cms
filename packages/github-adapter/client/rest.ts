@@ -136,14 +136,14 @@ class RestClient implements RestClientInterface {
       repo,
       ref,
       sha,
-    } = args;
+    } = zodParse(adapterSchema.createRefArgs, args);
 
-    const { data: newRef }: { data: CreateUpdateRefResponse } = await this.client(`POST /repos/${owner}/${repo}/git/refs`, {
+    const { data: newRef }: { data: CreateUpdateRefResponse } = await this.client('POST /repos/{owner}/{repo}/git/refs', {
       owner,
       repo,
       ref,
       sha,
-    });
+    }).catch(createErrorHandler('Unable to create Ref'));
 
     return newRef;
   }
