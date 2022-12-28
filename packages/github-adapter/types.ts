@@ -72,11 +72,7 @@ export type CreateTreeArgs = z.infer<typeof adapterSchema.createTreeArgs>;
 
 export type CreateRefArgs = z.infer<typeof adapterSchema.createRefArgs>;
 
-export type CreateRepoArgs = {
-  name: string,
-  description?: string,
-  isPrivate: boolean,
-}
+export type CreateRepoArgs = z.infer<typeof adapterSchema.createRepoArgs>;
 
 export type UpdateRefArgs = z.infer<typeof adapterSchema.updateRefArgs>
 

@@ -81,6 +81,11 @@ const createCommitArgs = z.object({
   tree: sha,
   parents: z.array(sha),
 });
+const createRepoArgs = z.object({
+  name: repoName,
+  description: z.string().optional(),
+  isPrivate: z.boolean(),
+});
 const createRefArgs = z.object({
   owner: repoOwner,
   repo: repoName,
@@ -104,6 +109,7 @@ export const adapterSchema = {
   gitApiArgs,
   createBlobArgs,
   createCommitArgs,
+  createRepoArgs,
   createRefArgs,
   createTreeArgs,
   updateRefArgs,

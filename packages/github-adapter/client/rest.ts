@@ -152,14 +152,32 @@ class RestClient implements RestClientInterface {
     const {
       name,
       description = DEFAULT_REPO_DESCRIPTION, // generic description
-      isPrivate = false,
-    } = args;
+      isPrivate,
+    } = zodParse(adapterSchema.createRepoArgs, args);
+
     const { data }: { data: GitHubRepository } = await this.client('POST /user/repos', {
       name,
       auto_init: true,
       description,
       private: isPrivate,
-    });
+    }).catch(createErrorHandler('Unable to create Repository', (errorResponse: any): ClientErrorData => {
+      const statusCode = errorResponse.status;
+      const message = errorResponse?.data?.message;
+
+      if ( // existing repo error
+        statusCode === 422
+        && message === 'Repository creation failed.'
+        && errorResponse.data?.errors?.length === 1
+        && errorResponse.data.errors[0].message === 'name already exists on this account'
+      ) {
+        return {
+          message: 'Repository already exists on this account.',
+          statusCode,
+        };
+      }
+
+      return { statusCode, message };
+    }));
 
     return data;
   }
