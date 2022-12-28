@@ -38,3 +38,6 @@ dist/
 
 # others
 .DS_Store
+
+# testing
+coverage/
