@@ -205,14 +205,18 @@ class RestClient implements RestClientInterface {
       ref,
       sha,
       force = false,
-    } = args;
-    const { data: newRef } = await this.client(`PATCH /repos/${owner}/${repo}/git/refs/${ref}`, {
+    } = zodParse(adapterSchema.updateRefArgs, args);
+
+    // {PREFIX}/{TYPE}/{...NAME}
+    const [, type, ...nameComponents] = ref.split('/');
+
+    const { data: newRef } = await this.client('PATCH /repos/{owner}/{repo}/git/refs/{ref}', {
       owner,
       repo,
-      ref,
+      ref: `${type}/${nameComponents.join('/')}`,
       sha,
       force,
-    });
+    }).catch(createErrorHandler('Unable to update Ref'));
 
     return newRef;
   }

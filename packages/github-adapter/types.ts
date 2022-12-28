@@ -78,9 +78,7 @@ export type CreateRepoArgs = {
   isPrivate: boolean,
 }
 
-export type UpdateRefArgs = CreateRefArgs & {
-  force?: boolean,
-}
+export type UpdateRefArgs = z.infer<typeof adapterSchema.updateRefArgs>
 
 // AdapterRestClient response types
 

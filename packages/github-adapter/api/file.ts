@@ -135,7 +135,7 @@ class FileApi implements FileApiInterface {
     await this.clients.rest.updateRef({
       owner,
       repo,
-      ref: `heads/${branch}`,
+      ref: `refs/heads/${branch}`,
       sha: commitSha,
     });
 
@@ -186,7 +186,7 @@ class FileApi implements FileApiInterface {
     await this.clients.rest.updateRef({
       owner,
       repo,
-      ref: `heads/${branch}`,
+      ref: `refs/heads/${branch}`,
       sha: commitSha,
     });
 

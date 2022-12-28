@@ -87,6 +87,7 @@ const createRefArgs = z.object({
   ref: repoRef,
   sha,
 });
+const updateRefArgs = createRefArgs.extend({ force: z.boolean().optional() });
 
 export const adapterSchema = {
   repoName,
@@ -105,6 +106,7 @@ export const adapterSchema = {
   createCommitArgs,
   createRefArgs,
   createTreeArgs,
+  updateRefArgs,
 
   // github specifics
   blobContent,
