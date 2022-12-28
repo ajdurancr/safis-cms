@@ -74,7 +74,7 @@ class RestClient implements RestClientInterface {
       },
     )
       .then(({ data }) => {
-        const { access_token: accessToken } = data || {};
+        const { access_token: accessToken } = data;
 
         return accessToken;
       })
@@ -201,9 +201,11 @@ class RestClient implements RestClientInterface {
   }
 
   getAuthenticatedUser = async (): Promise<AuthenticatedUser> => {
-    const { data: userInfo, headers } = await this.client('/user');
+    const { data: userInfo, headers } = await this.client('/user').catch(
+      createErrorHandler('Unable to get authenticated user'),
+    );
 
-    const { 'x-oauth-scopes': scope } = headers || {};
+    const { 'x-oauth-scopes': scope } = headers;
     const { login: username, avatar_url: avatarUrl, email } = userInfo;
 
     const user = {
