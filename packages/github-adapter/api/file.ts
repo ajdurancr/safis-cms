@@ -20,7 +20,7 @@ import {
   GitHubGraphQLError,
 } from '../types';
 import { adapterSchema } from '../zodSchema';
-import { zodParse } from '../helpers';
+import { createRefFullName, zodParse } from '../helpers';
 import { gitFileMode, gitItemType } from '../constants';
 
 const TYPENAME_BLOB = 'Blob'; // used to compare against GraphQL api responses
@@ -135,7 +135,7 @@ class FileApi implements FileApiInterface {
     await this.clients.rest.updateRef({
       owner,
       repo,
-      ref: `refs/heads/${branch}`,
+      ref: createRefFullName(branch),
       sha: commitSha,
     });
 
@@ -186,7 +186,7 @@ class FileApi implements FileApiInterface {
     await this.clients.rest.updateRef({
       owner,
       repo,
-      ref: `refs/heads/${branch}`,
+      ref: createRefFullName(branch),
       sha: commitSha,
     });
 

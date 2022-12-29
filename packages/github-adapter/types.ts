@@ -19,6 +19,8 @@ export type GitItemType = z.infer<typeof adapterSchema.gitItemType>;
 
 export type GitFileMode = z.infer<typeof adapterSchema.gitFileMode>;
 
+export type RefType = z.infer<typeof adapterSchema.refType>;
+
 export type Blob = {
   url?: string,
   sha: string | null,

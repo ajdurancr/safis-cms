@@ -1,5 +1,6 @@
+import { refType } from './constants';
 import { ValidationError } from './error';
-import { zodParse, buildFullPaths } from './helpers';
+import { zodParse, buildFullPaths, createRefFullName } from './helpers';
 import { expectToThrowHandler } from './testing.helpers';
 import { RepoPaths, RepoPathsEnum } from './types';
 import { adapterSchema } from './zodSchema';
@@ -62,6 +63,88 @@ describe('buildFullPaths', () => {
     }, (error) => {
       expect(error).toBeInstanceOf(ValidationError);
       expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: path cannot start with a slash at "content"]');
+    });
+  });
+});
+
+describe('createRefFullName', () => {
+  test('creates full reference name', () => {
+    const validRefNames = [
+      'test',
+      'TEST',
+      'feat/a.lockx',
+      'test.123',
+      'feat/123',
+      'feat/feature-name/variant-a',
+      'feat.name.a.1',
+      'feat-branch_name',
+      'head',
+      'HEAD',
+      '-test',
+      'test-',
+      'test@bar',
+      '\ud83d\udca9',
+      'ünicöde',
+      '\x80',
+    ];
+
+    validRefNames.forEach((name) => {
+      const fullRefName = createRefFullName(name);
+      const fullRefTagName = createRefFullName(name, refType.TAG);
+
+      expect(fullRefName).toEqual(`refs/${refType.BRANCH}/${name}`);
+      expect(fullRefTagName).toEqual(`refs/${refType.TAG}/${name}`);
+    });
+  });
+
+  test('throws on invalid reference names', () => {
+    const invalidRefNames = [
+      '',
+      '.',
+      '..',
+      '/',
+      '//',
+      '/./',
+      './.',
+      '.test',
+      'test/.123',
+      'test.',
+      'a.lock',
+      'test/a.lock',
+      'test/a.lock/b',
+      'test.123.',
+      'test/.123/branch',
+      'test//123',
+      '/test',
+      'test/',
+      'test..branch',
+      'test@{branch',
+      '\x7f',
+    ];
+
+    invalidRefNames.forEach((name) => {
+      expectToThrowHandler(() => {
+        createRefFullName(name);
+      }, (error) => {
+        expect(error).toBeInstanceOf(ValidationError);
+        expect(error).toMatchInlineSnapshot(`[GitAdpaterError: Validation error: ${name} is not a valid ref name]`);
+      });
+
+      expectToThrowHandler(() => {
+        createRefFullName(name, refType.TAG);
+      }, (error) => {
+        expect(error).toBeInstanceOf(ValidationError);
+        expect(error).toMatchInlineSnapshot(`[GitAdpaterError: Validation error: ${name} is not a valid ref name]`);
+      });
+    });
+  });
+
+  test('throws on invalid ref type', () => {
+    expectToThrowHandler(() => {
+      createRefFullName('test', 'wrong-type' as any);
+    }, (error) => {
+      expect(error).toBeInstanceOf(ValidationError);
+      expect(error).toMatchInlineSnapshot('[GitAdpaterError: Validation error: Invalid enum value. Expected \'heads\' | \'tags\', received \'wrong-type\']');
     });
   });
 });

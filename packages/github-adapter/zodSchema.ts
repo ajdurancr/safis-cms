@@ -2,6 +2,8 @@ import { z } from 'zod';
 import {
   gitItemType as gitItemTypeMap,
   gitFileMode as gitFileModeMap,
+  refType as refTypeMap,
+  BAD_REF_NAME_REGEX,
 } from './constants';
 import { RepoPathsEnum } from './types';
 
@@ -9,15 +11,20 @@ import { RepoPathsEnum } from './types';
 const refMinimumComponents = 3;
 const blobContent = z.string().min(1);
 const sha = z.string().length(40).regex(/^[0-9a-f]{40}$/, 'sha must be exactly 40 characters and contain only [0-9a-f]');
-const repoRef = z.string()
+const refName = z.string().refine(
+  (name) => !BAD_REF_NAME_REGEX.test(name),
+  (name) => ({ message: `${name} is not a valid ref name` }),
+);
+const refFullName = refName
   .refine(
-    (ref) => ref.startsWith('refs/heads/') || ref.startsWith('refs/tags/'),
+    (refInput) => refInput.startsWith('refs/heads/') || refInput.startsWith('refs/tags/'),
     { message: 'Reference must start with `refs/heads/` or `refs/tags`' },
   )
   .refine(
-    (ref) => ref.split('/').filter(Boolean).length >= refMinimumComponents,
+    (refInput) => refInput.split('/').filter(Boolean).length >= refMinimumComponents,
     { message: 'Reference name must contain at least three slash-separated components' },
   );
+const refType = z.nativeEnum(refTypeMap);
 const gitItemType = z.nativeEnum(gitItemTypeMap);
 const gitFileMode = z.nativeEnum(gitFileModeMap);
 const path = z.string().min(1).refine(
@@ -89,7 +96,7 @@ const createRepoArgs = z.object({
 const createRefArgs = z.object({
   owner: repoOwner,
   repo: repoName,
-  ref: repoRef,
+  ref: refFullName,
   sha,
 });
 const updateRefArgs = createRefArgs.extend({ force: z.boolean().optional() });
@@ -120,5 +127,8 @@ export const adapterSchema = {
   gitFileMode,
   sha,
   path,
+  refFullName,
+  refName,
+  refType,
   tree,
 };

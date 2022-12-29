@@ -110,7 +110,7 @@ describe('RestClient', () => {
       await restClient.updateRef(invalidArgs)
         .catch((validationError) => {
           expect(validationError).toBeInstanceOf(ValidationError);
-          expect(validationError).toMatchInlineSnapshot('[GitAdpaterError: Validation error: String must contain at least 1 character(s) at "owner"; Required at "repo"; Reference name must contain at least three slash-separated components at "ref"; sha must be exactly 40 characters and contain only [0-9a-f] at "sha"; Expected boolean, received string at "force"]');
+          expect(validationError).toMatchInlineSnapshot('[GitAdpaterError: Validation error: String must contain at least 1 character(s) at "owner"; Required at "repo"; refs/heads/ is not a valid ref name at "ref"; Reference name must contain at least three slash-separated components at "ref"; sha must be exactly 40 characters and contain only [0-9a-f] at "sha"; Expected boolean, received string at "force"]');
         });
 
       await restClient.updateRef({
@@ -119,7 +119,7 @@ describe('RestClient', () => {
       })
         .catch((validationError) => {
           expect(validationError).toBeInstanceOf(ValidationError);
-          expect(validationError).toMatchInlineSnapshot('[GitAdpaterError: Validation error: Reference name must contain at least three slash-separated components at "ref"]');
+          expect(validationError).toMatchInlineSnapshot('[GitAdpaterError: Validation error: refs/heads// is not a valid ref name at "ref"; Reference name must contain at least three slash-separated components at "ref"]');
         });
 
       expect(ghRestClient).not.toHaveBeenCalled();
@@ -150,37 +150,6 @@ describe('RestClient', () => {
       expect(ghRestClient).toBeCalledWith('PATCH /repos/{owner}/{repo}/git/refs/{ref}', {
         ...invalidArgs,
         ref: `${REF_TYPE}/${REF_NAME}`,
-        force: false,
-      });
-    });
-
-    test('throws when ref is not a valid name', async () => {
-      const invalidRefName = `${REF_NAME}/`;
-      const invalidRef = `refs/heads/${invalidRefName}`;
-      const invalidArgs = {
-        ...UPDATE_REF_ARGS,
-        ref: invalidRef,
-      };
-      const updateRefErrorResponse = {
-        status: 422,
-        data: { message: 'Reference does not exist' },
-      };
-
-      ghRestClient.mockRejectedValueOnce(updateRefErrorResponse);
-
-      await restClient.updateRef(invalidArgs)
-        .catch((invalidRefNameError) => {
-          expect(invalidRefNameError).toBeInstanceOf(GitHubClientError);
-          expect(invalidRefNameError.error).toEqual({
-            message: updateRefErrorResponse.data.message,
-            statusCode: updateRefErrorResponse.status,
-          });
-          expect(invalidRefNameError).toMatchInlineSnapshot('[GitAdpaterError: Unable to update Ref: Reference does not exist]');
-        });
-
-      expect(ghRestClient).toBeCalledWith('PATCH /repos/{owner}/{repo}/git/refs/{ref}', {
-        ...invalidArgs,
-        ref: `${REF_TYPE}/${invalidRefName}`,
         force: false,
       });
     });

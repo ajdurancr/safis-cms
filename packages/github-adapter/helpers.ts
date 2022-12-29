@@ -1,9 +1,10 @@
 import { ParseParams, z } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 
-import { RepoPathsEnum, RepoPaths } from './types';
+import { RepoPathsEnum, RepoPaths, RefType } from './types';
 import { ValidationError } from './error';
 import { adapterSchema } from './zodSchema';
+import { refType as refTypeMap } from './constants';
 
 const zodParse = <T extends z.ZodTypeAny>(
   schema: T,
@@ -49,7 +50,15 @@ const buildFullPaths = (repoPaths: RepoPaths): RepoPaths => {
   return fullPaths;
 };
 
+const createRefFullName = (refName: string, refType: RefType = refTypeMap.BRANCH): string => {
+  zodParse(adapterSchema.refType, refType);
+  zodParse(adapterSchema.refName, refName);
+
+  return `refs/${refType}/${refName}`;
+};
+
 export {
+  createRefFullName,
   buildFullPaths,
   zodParse,
 };

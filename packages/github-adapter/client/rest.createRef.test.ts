@@ -63,7 +63,7 @@ describe('RestClient', () => {
       await restClient.createRef(invalidArgs)
         .catch((validationError) => {
           expect(validationError).toBeInstanceOf(ValidationError);
-          expect(validationError).toMatchInlineSnapshot('[GitAdpaterError: Validation error: String must contain at least 1 character(s) at "owner"; Required at "repo"; Reference name must contain at least three slash-separated components at "ref"; sha must be exactly 40 characters and contain only [0-9a-f] at "sha"]');
+          expect(validationError).toMatchInlineSnapshot('[GitAdpaterError: Validation error: String must contain at least 1 character(s) at "owner"; Required at "repo"; refs/heads/ is not a valid ref name at "ref"; Reference name must contain at least three slash-separated components at "ref"; sha must be exactly 40 characters and contain only [0-9a-f] at "sha"]');
         });
 
       await restClient.createRef({
@@ -72,7 +72,7 @@ describe('RestClient', () => {
       })
         .catch((validationError) => {
           expect(validationError).toBeInstanceOf(ValidationError);
-          expect(validationError).toMatchInlineSnapshot('[GitAdpaterError: Validation error: Reference name must contain at least three slash-separated components at "ref"]');
+          expect(validationError).toMatchInlineSnapshot('[GitAdpaterError: Validation error: refs/heads// is not a valid ref name at "ref"; Reference name must contain at least three slash-separated components at "ref"]');
         });
 
       await restClient.createRef({
@@ -128,32 +128,6 @@ describe('RestClient', () => {
             statusCode: createRefErrorResponse.status,
           });
           expect(nonExistingObjError).toMatchInlineSnapshot('[GitAdpaterError: Unable to create Ref: Object does not exist]');
-        });
-
-      expect(ghRestClient).toBeCalledWith('POST /repos/{owner}/{repo}/git/refs', invalidArgs);
-    });
-
-    test('throws when ref is not a valid name', async () => {
-      const invalidRefName = 'refs/heads/test/';
-      const invalidArgs = {
-        ...CREATE_REF_ARGS,
-        ref: invalidRefName,
-      };
-      const createRefErrorResponse = {
-        status: 422,
-        data: { message: `${invalidRefName} is not a valid ref name.` },
-      };
-
-      ghRestClient.mockRejectedValueOnce(createRefErrorResponse);
-
-      await restClient.createRef(invalidArgs)
-        .catch((invalidRefNameError) => {
-          expect(invalidRefNameError).toBeInstanceOf(GitHubClientError);
-          expect(invalidRefNameError.error).toEqual({
-            message: createRefErrorResponse.data.message,
-            statusCode: createRefErrorResponse.status,
-          });
-          expect(invalidRefNameError).toMatchInlineSnapshot('[GitAdpaterError: Unable to create Ref: refs/heads/test/ is not a valid ref name.]');
         });
 
       expect(ghRestClient).toBeCalledWith('POST /repos/{owner}/{repo}/git/refs', invalidArgs);
