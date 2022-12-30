@@ -14,7 +14,7 @@ query getBaseCommitInfo($repo: String!, $owner: String!, $ref: String!) {
   }
 }`;
 
-const FILE_SELECTED_FILEDS = `
+export const FILE_SELECTED_FILEDS = `
 ... on TreeEntry {
   object {
     __typename
@@ -42,7 +42,7 @@ query getFileContent($repo: String!, $owner: String!, $ref: String!, $path: Stri
   }
 }`;
 
-const FILES_SELECTED_FIELDS_REPLACE_TEMPLATE = '##REPLACE_WITH_FILES_SELECTED_FIELDS##';
+export const FILES_SELECTED_FIELDS_REPLACE_TEMPLATE = '##REPLACE_WITH_FILES_SELECTED_FIELDS##';
 
 export const QUERY_GET_FILTERED_FILES_CONTENT = `
 query getFilteredFilesContent($repo: String!, $owner: String!, $ref: String!) { 
