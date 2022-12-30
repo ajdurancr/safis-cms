@@ -44,9 +44,9 @@ const createErrorData = (errorResponse: any): ClientErrorData => ({
 
 const createErrorHandler = (
   errorDescription: string,
-  createErrordDataFn: typeof createErrorData = createErrorData,
+  createErrorDataFn: typeof createErrorData = createErrorData,
 ) => (errorResponse: any) => {
-  const errorData = createErrordDataFn(errorResponse);
+  const errorData = createErrorDataFn(errorResponse);
 
   throw new GitHubClientError(errorDescription, errorData);
 };
