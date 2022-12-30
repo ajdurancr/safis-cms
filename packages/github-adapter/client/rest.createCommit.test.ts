@@ -1,4 +1,4 @@
-import { GitHubClientError, ValidationError } from '../error';
+import { RestClientError, ValidationError } from '../error';
 import { RestClient } from './rest';
 
 const octokitRequest = jest.fn().mockResolvedValue({});
@@ -73,16 +73,15 @@ describe('RestClient', () => {
         status: 422,
         data: { message: 'Tree SHA does not exist' },
       };
+      const errorMessage = `Unable to create Commit: ${invalidTreeShaResponse.data.message}`;
 
       ghRestClient.mockRejectedValueOnce(invalidTreeShaResponse);
 
       await restClient.createCommit(invalidTreeShaArgs).catch((invalidShaError) => {
-        expect(invalidShaError).toBeInstanceOf(GitHubClientError);
-        expect(invalidShaError.error).toEqual({
-          message: invalidTreeShaResponse.data.message,
-          statusCode: invalidTreeShaResponse.status,
-        });
-        expect(invalidShaError).toMatchInlineSnapshot('[GitAdpaterError: Unable to create Commit: Tree SHA does not exist]');
+        expect(invalidShaError).toBeInstanceOf(RestClientError);
+        expect(invalidShaError).toMatchInlineSnapshot(`[GitAdpaterError: ${errorMessage}]`);
+        expect(invalidShaError.message).toBe(errorMessage);
+        expect(invalidShaError.code).toBe(invalidTreeShaResponse.status);
       });
       expect(ghRestClient).toBeCalledWith('POST /repos/{owner}/{repo}/git/commits', invalidTreeShaArgs);
     });
@@ -98,16 +97,15 @@ describe('RestClient', () => {
         status: 422,
         data: { message: 'Parent SHA does not exist or is not a commit object' },
       };
+      const errorMessage = `Unable to create Commit: ${invalidParentShaResponse.data.message}`;
 
       ghRestClient.mockRejectedValueOnce(invalidParentShaResponse);
 
       await restClient.createCommit(invalidParentShaArgs).catch((invalidShaError) => {
-        expect(invalidShaError).toBeInstanceOf(GitHubClientError);
-        expect(invalidShaError.error).toEqual({
-          message: invalidParentShaResponse.data.message,
-          statusCode: invalidParentShaResponse.status,
-        });
-        expect(invalidShaError).toMatchInlineSnapshot('[GitAdpaterError: Unable to create Commit: Parent SHA does not exist or is not a commit object]');
+        expect(invalidShaError).toBeInstanceOf(RestClientError);
+        expect(invalidShaError).toMatchInlineSnapshot(`[GitAdpaterError: ${errorMessage}]`);
+        expect(invalidShaError.message).toBe(errorMessage);
+        expect(invalidShaError.code).toBe(invalidParentShaResponse.status);
       });
       expect(ghRestClient).toBeCalledWith('POST /repos/{owner}/{repo}/git/commits', invalidParentShaArgs);
     });

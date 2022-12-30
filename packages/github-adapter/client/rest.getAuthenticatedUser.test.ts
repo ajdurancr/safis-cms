@@ -1,4 +1,4 @@
-import { GitHubClientError } from '../error';
+import { RestClientError } from '../error';
 import { RestClient } from './rest';
 
 const octokitRequest = jest.fn().mockResolvedValue({});
@@ -50,17 +50,16 @@ describe('RestClient', () => {
         status: 500,
         data: { message: 'Another error' },
       };
+      const errorMessage = `Unable to get authenticated user: ${randomErrorResponse.data.message}`;
 
       ghRestClient.mockRejectedValueOnce(randomErrorResponse);
 
       await restClient.getAuthenticatedUser()
         .catch((randomError) => {
-          expect(randomError).toBeInstanceOf(GitHubClientError);
-          expect(randomError.error).toEqual({
-            message: randomErrorResponse.data.message,
-            statusCode: randomErrorResponse.status,
-          });
-          expect(randomError).toMatchInlineSnapshot('[GitAdpaterError: Unable to get authenticated user: Another error]');
+          expect(randomError).toBeInstanceOf(RestClientError);
+          expect(randomError.message).toEqual(errorMessage);
+          expect(randomError.code).toEqual(randomErrorResponse.status);
+          expect(randomError).toMatchInlineSnapshot(`[GitAdpaterError: ${errorMessage}]`);
         });
 
       expect(ghRestClient).toBeCalledWith('/user');

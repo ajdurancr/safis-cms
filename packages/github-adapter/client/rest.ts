@@ -2,7 +2,7 @@ import { Octokit } from '@octokit/core';
 import { z } from 'zod';
 
 import { DEFAULT_REPO_DESCRIPTION } from '../constants';
-import { GitHubClientError, ClientErrorData } from '../error';
+import { RestClientError } from '../error';
 import { zodParse } from '../helpers';
 import {
   RestClientInterface,
@@ -37,18 +37,12 @@ const zGetOAuthLoginUrlArgs = z.object({
 type GetOAuthAccessTokenArgs = z.infer<typeof zGetOAuthAccessTokenArgs>
 type GetOAuthLoginUrlArgs = z.infer<typeof zGetOAuthLoginUrlArgs>
 
-const createErrorData = (errorResponse: any): ClientErrorData => ({
-  message: errorResponse?.data?.message || 'Error',
-  statusCode: errorResponse.status,
-});
-
-const createErrorHandler = (
-  errorDescription: string,
-  createErrorDataFn: typeof createErrorData = createErrorData,
-) => (errorResponse: any) => {
-  const errorData = createErrorDataFn(errorResponse);
-
-  throw new GitHubClientError(errorDescription, errorData);
+const createErrorHandler = (errorDescription: string) => (errorResponse: any) => {
+  throw new RestClientError(
+    errorDescription,
+    errorResponse?.data?.message || errorResponse?.message || 'Error',
+    errorResponse.status,
+  );
 };
 
 class RestClient implements RestClientInterface {
@@ -78,17 +72,15 @@ class RestClient implements RestClientInterface {
 
         return accessToken;
       })
-      .catch(createErrorHandler('Unable to get oauth access token', (errorResponse: any) => {
+      .catch((errorResponse: any) => {
+        const { status } = errorResponse;
         // eslint-disable-next-line camelcase
-        const error = errorResponse.error === 'Not Found'
+        const message = status === 404
           ? 'The client_id and/or client_secret passed are incorrect.'
           : errorResponse.error_description || errorResponse.error;
 
-        return {
-          message: error,
-          statusCode: errorResponse.status,
-        };
-      }));
+        throw new RestClientError('Unable to get oauth access token', message, status);
+      });
   }
 
   static getOAuthLoginUrl = (args: GetOAuthLoginUrlArgs): string => {
@@ -160,9 +152,9 @@ class RestClient implements RestClientInterface {
       auto_init: true,
       description,
       private: isPrivate,
-    }).catch(createErrorHandler('Unable to create Repository', (errorResponse: any): ClientErrorData => {
+    }).catch((errorResponse: any) => {
       const statusCode = errorResponse.status;
-      const message = errorResponse?.data?.message;
+      let message = errorResponse?.data?.message;
 
       if ( // existing repo error
         statusCode === 422
@@ -170,14 +162,11 @@ class RestClient implements RestClientInterface {
         && errorResponse.data?.errors?.length === 1
         && errorResponse.data.errors[0].message === 'name already exists on this account'
       ) {
-        return {
-          message: 'Repository already exists on this account.',
-          statusCode,
-        };
+        message = 'Repository already exists on this account.';
       }
 
-      return { statusCode, message };
-    }));
+      throw new RestClientError('Unable to create Repository', message, statusCode);
+    });
 
     return data;
   }

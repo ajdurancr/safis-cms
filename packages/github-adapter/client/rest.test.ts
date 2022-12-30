@@ -1,4 +1,4 @@
-import { GitHubClientError, ValidationError } from '../error';
+import { RestClientError, ValidationError } from '../error';
 import { RestClient } from './rest';
 
 const octokitRequest = jest.fn().mockResolvedValue({});
@@ -79,7 +79,7 @@ describe('RestClient', () => {
         clientSecret: OAUTH_CLIENT_SECRET,
         oauthCallbackCode: OAUTH_CALLBACK_CODE,
       }).catch((error) => {
-        expect(error).toBeInstanceOf(GitHubClientError);
+        expect(error).toBeInstanceOf(RestClientError);
         expect(error).toMatchInlineSnapshot(
           '[GitAdpaterError: Unable to get oauth access token: The client_id and/or client_secret passed are incorrect.]',
         );
@@ -98,7 +98,7 @@ describe('RestClient', () => {
         clientSecret: 'InvalidSecret123',
         oauthCallbackCode: OAUTH_CALLBACK_CODE,
       }).catch((error) => {
-        expect(error).toBeInstanceOf(GitHubClientError);
+        expect(error).toBeInstanceOf(RestClientError);
         expect(error).toMatchInlineSnapshot(
           '[GitAdpaterError: Unable to get oauth access token: The client_id and/or client_secret passed are incorrect.]',
         );
@@ -117,7 +117,7 @@ describe('RestClient', () => {
         clientSecret: OAUTH_CLIENT_SECRET,
         oauthCallbackCode: 'InvalidCode123',
       }).catch((error) => {
-        expect(error).toBeInstanceOf(GitHubClientError);
+        expect(error).toBeInstanceOf(RestClientError);
         expect(error).toMatchInlineSnapshot(
           '[GitAdpaterError: Unable to get oauth access token: The code passed is incorrect or expired.]',
         );

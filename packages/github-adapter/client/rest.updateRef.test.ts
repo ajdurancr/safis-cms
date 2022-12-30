@@ -1,4 +1,4 @@
-import { GitHubClientError, ValidationError } from '../error';
+import { RestClientError, ValidationError } from '../error';
 import { RestClient } from './rest';
 
 const octokitRequest = jest.fn().mockResolvedValue({});
@@ -78,17 +78,16 @@ describe('RestClient', () => {
         status: 422,
         data: { message: 'Update is not a fast forward' },
       };
+      const errorMessage = `Unable to update Ref: ${updateRefErrorResponse.data.message}`;
 
       ghRestClient.mockRejectedValueOnce(updateRefErrorResponse);
 
       await restClient.updateRef(UPDATE_REF_ARGS)
         .catch((existingRefError) => {
-          expect(existingRefError).toBeInstanceOf(GitHubClientError);
-          expect(existingRefError.error).toEqual({
-            message: updateRefErrorResponse.data.message,
-            statusCode: updateRefErrorResponse.status,
-          });
-          expect(existingRefError).toMatchInlineSnapshot('[GitAdpaterError: Unable to update Ref: Update is not a fast forward]');
+          expect(existingRefError).toBeInstanceOf(RestClientError);
+          expect(existingRefError).toMatchInlineSnapshot(`[GitAdpaterError: ${errorMessage}]`);
+          expect(existingRefError.message).toBe(errorMessage);
+          expect(existingRefError.code).toBe(updateRefErrorResponse.status);
         });
 
       expect(ghRestClient).toBeCalledWith('PATCH /repos/{owner}/{repo}/git/refs/{ref}', {
@@ -134,17 +133,16 @@ describe('RestClient', () => {
         status: 422,
         data: { message: 'Object does not exist' },
       };
+      const errorMessage = `Unable to update Ref: ${updateRefErrorResponse.data.message}`;
 
       ghRestClient.mockRejectedValueOnce(updateRefErrorResponse);
 
       await restClient.updateRef(invalidArgs)
         .catch((nonExistingObjError) => {
-          expect(nonExistingObjError).toBeInstanceOf(GitHubClientError);
-          expect(nonExistingObjError.error).toEqual({
-            message: updateRefErrorResponse.data.message,
-            statusCode: updateRefErrorResponse.status,
-          });
-          expect(nonExistingObjError).toMatchInlineSnapshot('[GitAdpaterError: Unable to update Ref: Object does not exist]');
+          expect(nonExistingObjError).toBeInstanceOf(RestClientError);
+          expect(nonExistingObjError).toMatchInlineSnapshot(`[GitAdpaterError: ${errorMessage}]`);
+          expect(nonExistingObjError.message).toBe(errorMessage);
+          expect(nonExistingObjError.code).toBe(updateRefErrorResponse.status);
         });
 
       expect(ghRestClient).toBeCalledWith('PATCH /repos/{owner}/{repo}/git/refs/{ref}', {

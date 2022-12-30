@@ -1,5 +1,5 @@
 import { DEFAULT_REPO_DESCRIPTION } from '../constants';
-import { GitHubClientError, ValidationError } from '../error';
+import { RestClientError, ValidationError } from '../error';
 import { GitHubRepository } from '../types';
 import { RestClient } from './rest';
 
@@ -116,17 +116,16 @@ describe('RestClient', () => {
           ],
         },
       };
+      const errorMessage = 'Unable to create Repository: Repository already exists on this account.';
 
       ghRestClient.mockRejectedValueOnce(existingRepoErrorResponse);
 
       await restClient.createRepository(CREATE_REPO_ARGS)
         .catch((existingRefError) => {
-          expect(existingRefError).toBeInstanceOf(GitHubClientError);
-          expect(existingRefError.error).toEqual({
-            message: 'Repository already exists on this account.',
-            statusCode: existingRepoErrorResponse.status,
-          });
-          expect(existingRefError).toMatchInlineSnapshot('[GitAdpaterError: Unable to create Repository: Repository already exists on this account.]');
+          expect(existingRefError).toBeInstanceOf(RestClientError);
+          expect(existingRefError).toMatchInlineSnapshot(`[GitAdpaterError: ${errorMessage}]`);
+          expect(existingRefError.message).toBe(errorMessage);
+          expect(existingRefError.code).toBe(existingRepoErrorResponse.status);
         });
 
       expect(ghRestClient).toBeCalledWith('POST /user/repos', {
@@ -142,17 +141,16 @@ describe('RestClient', () => {
         status: 500,
         data: { message: 'Another error' },
       };
+      const errorMessage = `Unable to create Repository: ${randomErrorResponse.data.message}`;
 
       ghRestClient.mockRejectedValueOnce(randomErrorResponse);
 
       await restClient.createRepository(CREATE_REPO_ARGS)
         .catch((randomError) => {
-          expect(randomError).toBeInstanceOf(GitHubClientError);
-          expect(randomError.error).toEqual({
-            message: randomErrorResponse.data.message,
-            statusCode: randomErrorResponse.status,
-          });
-          expect(randomError).toMatchInlineSnapshot('[GitAdpaterError: Unable to create Repository: Another error]');
+          expect(randomError).toBeInstanceOf(RestClientError);
+          expect(randomError).toMatchInlineSnapshot(`[GitAdpaterError: ${errorMessage}]`);
+          expect(randomError.message).toBe(errorMessage);
+          expect(randomError.code).toBe(randomErrorResponse.status);
         });
 
       expect(ghRestClient).toBeCalledWith('POST /user/repos', {

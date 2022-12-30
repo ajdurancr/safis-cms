@@ -37,26 +37,27 @@ class ValidationError extends GitAdpaterError {
   }
 }
 
-export type ClientErrorData = { message: string, statusCode: number}
+class RestClientError extends GitAdpaterError {
+  _message: string
 
-class GitHubClientError extends GitAdpaterError {
-  error: ClientErrorData
+  code: number
 
-  constructor(description: string, error: ClientErrorData) {
+  constructor(description: string, message: string, statusCode: number) {
     super(description);
 
-    this.error = error;
+    this._message = message;
+    this.code = statusCode;
   }
 
   get message(): string {
     const description = this.description ? `${this.description}: ` : '';
 
-    return `${description}${this.error.message}`;
+    return `${description}${this._message}`;
   }
 }
 
 export {
   GitAdpaterError,
   ValidationError,
-  GitHubClientError,
+  RestClientError,
 };

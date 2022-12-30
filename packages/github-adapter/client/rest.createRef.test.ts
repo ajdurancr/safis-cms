@@ -1,4 +1,4 @@
-import { GitHubClientError, ValidationError } from '../error';
+import { RestClientError, ValidationError } from '../error';
 import { RestClient } from './rest';
 
 const octokitRequest = jest.fn().mockResolvedValue({});
@@ -92,17 +92,16 @@ describe('RestClient', () => {
         status: 422,
         data: { message: 'Reference already exists' },
       };
+      const errorMessage = `Unable to create Ref: ${createRefErrorResponse.data.message}`;
 
       ghRestClient.mockRejectedValueOnce(createRefErrorResponse);
 
       await restClient.createRef(CREATE_REF_ARGS)
         .catch((existingRefError) => {
-          expect(existingRefError).toBeInstanceOf(GitHubClientError);
-          expect(existingRefError.error).toEqual({
-            message: createRefErrorResponse.data.message,
-            statusCode: createRefErrorResponse.status,
-          });
-          expect(existingRefError).toMatchInlineSnapshot('[GitAdpaterError: Unable to create Ref: Reference already exists]');
+          expect(existingRefError).toBeInstanceOf(RestClientError);
+          expect(existingRefError).toMatchInlineSnapshot(`[GitAdpaterError: ${errorMessage}]`);
+          expect(existingRefError.message).toBe(errorMessage);
+          expect(existingRefError.code).toBe(createRefErrorResponse.status);
         });
 
       expect(ghRestClient).toBeCalledWith('POST /repos/{owner}/{repo}/git/refs', CREATE_REF_ARGS);
@@ -117,17 +116,16 @@ describe('RestClient', () => {
         status: 422,
         data: { message: 'Object does not exist' },
       };
+      const errorMessage = `Unable to create Ref: ${createRefErrorResponse.data.message}`;
 
       ghRestClient.mockRejectedValueOnce(createRefErrorResponse);
 
       await restClient.createRef(invalidArgs)
         .catch((nonExistingObjError) => {
-          expect(nonExistingObjError).toBeInstanceOf(GitHubClientError);
-          expect(nonExistingObjError.error).toEqual({
-            message: createRefErrorResponse.data.message,
-            statusCode: createRefErrorResponse.status,
-          });
-          expect(nonExistingObjError).toMatchInlineSnapshot('[GitAdpaterError: Unable to create Ref: Object does not exist]');
+          expect(nonExistingObjError).toBeInstanceOf(RestClientError);
+          expect(nonExistingObjError).toMatchInlineSnapshot(`[GitAdpaterError: ${errorMessage}]`);
+          expect(nonExistingObjError.message).toBe(errorMessage);
+          expect(nonExistingObjError.code).toBe(createRefErrorResponse.status);
         });
 
       expect(ghRestClient).toBeCalledWith('POST /repos/{owner}/{repo}/git/refs', invalidArgs);

@@ -1,4 +1,4 @@
-import { GitHubClientError, ValidationError } from '../error';
+import { RestClientError, ValidationError } from '../error';
 import { RestClient } from './rest';
 
 const octokitRequest = jest.fn().mockResolvedValue({});
@@ -52,6 +52,7 @@ describe('RestClient', () => {
         status: 404,
         data: { message: 'Not Found' },
       };
+      const errorMessage = `Unable to create Blob: ${errorResponse.data.message}`;
 
       ghRestClient.mockRejectedValue(errorResponse);
 
@@ -60,12 +61,10 @@ describe('RestClient', () => {
         repo: REPO_NAME,
         content,
       }).catch((error) => {
-        expect(error).toBeInstanceOf(GitHubClientError);
-        expect(error).toMatchInlineSnapshot('[GitAdpaterError: Unable to create Blob: Not Found]');
-        expect(error.error).toEqual({
-          message: errorResponse.data.message,
-          statusCode: errorResponse.status,
-        });
+        expect(error).toBeInstanceOf(RestClientError);
+        expect(error).toMatchInlineSnapshot(`[GitAdpaterError: ${errorMessage}]`);
+        expect(error.message).toBe(errorMessage);
+        expect(error.code).toBe(errorResponse.status);
       });
 
       expect(ghRestClient).toHaveBeenNthCalledWith(
@@ -79,12 +78,10 @@ describe('RestClient', () => {
         repo: INVALID_REPO,
         content,
       }).catch((error) => {
-        expect(error).toBeInstanceOf(GitHubClientError);
-        expect(error).toMatchInlineSnapshot('[GitAdpaterError: Unable to create Blob: Not Found]');
-        expect(error.error).toEqual({
-          message: errorResponse.data.message,
-          statusCode: errorResponse.status,
-        });
+        expect(error).toBeInstanceOf(RestClientError);
+        expect(error).toMatchInlineSnapshot(`[GitAdpaterError: ${errorMessage}]`);
+        expect(error.message).toBe(errorMessage);
+        expect(error.code).toBe(errorResponse.status);
       });
 
       expect(ghRestClient).toHaveBeenLastCalledWith(
